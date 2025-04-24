@@ -1,10 +1,16 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/group_list_screen.dart';
 
 void main() {
-  runApp(const FairFlipApp());
+  // Wrap the entire app in ProviderScope
+  runApp(
+    const ProviderScope( // <-- ADDED ProviderScope HERE
+      child: FairFlipApp(),
+    ),
+  );
 }
 
 class FairFlipApp extends StatelessWidget {

@@ -1,150 +1,180 @@
 // lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
+import 'package:collection/collection.dart'; // Import collection package for firstWhereOrNull
+
+// Import providers and models
+import '../providers.dart';
 import '../models/models.dart';
-import '../utils/formatters.dart'; // Assuming formatters are moved here
-import 'dashboard_screen.dart';   // Import DashboardScreen
-import 'history_screen.dart';     // Import HistoryScreen
-import 'settings_screen.dart';    // Import SettingsScreen
-import 'add_expense_screen.dart'; // Import AddExpenseScreen
+import '../utils/formatters.dart';
 
-class MainScreen extends StatefulWidget {
-  final PaymentGroup group;
+// Import screen components
+import 'dashboard_screen.dart';
+import 'history_screen.dart';
+import 'settings_screen.dart';
+import 'add_expense_screen.dart';
 
-  const MainScreen({super.key, required this.group});
+// Change StatefulWidget to ConsumerStatefulWidget
+class MainScreen extends ConsumerStatefulWidget {
+  // Accept groupId instead of the whole group object
+  final String groupId;
+
+  const MainScreen({super.key, required this.groupId});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  // Change State to ConsumerState
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0; // Index for the selected tab
-  late List<Widget> _widgetOptions; // List of widgets for the tabs
-  bool _didDataChange = false; // Flag to track if data changed
+// Change State to ConsumerState
+class _MainScreenState extends ConsumerState<MainScreen> {
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _updateWidgetOptions(); // Initialize the list of tab widgets
   }
 
-  // Helper function to build/update the list of widgets for the tabs
-  void _updateWidgetOptions() {
-       _widgetOptions = <Widget>[
-         // Pass the group data AND the callback function down to DashboardScreen
-         DashboardScreen(
-           group: widget.group,
-           onAddExpenseRequested: _navigateToAddExpense, // Pass the method here!
-         ),
-         HistoryScreen(group: widget.group),
-         SettingsScreen(group: widget.group),
-       ];
-  }
-
-  // Handles tapping on the bottom navigation bar items
   void _onItemTapped(int index) {
-    // Check if the index is valid before updating state
-    if (index >= 0 && index < _widgetOptions.length) {
-       setState(() {
-         _selectedIndex = index;
-       });
-    }
+    setState(() {
+       _selectedIndex = index;
+     });
   }
 
-  // Handles navigation to the Add Expense Screen
-  // This method is now passed as a callback to DashboardScreen
+  // --- Modified: Handle navigation and adding expense via Provider ---
   void _navigateToAddExpense({String? preselectedPayerId}) async {
+    // Use ref.read to safely get the current state within this async method
+    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
+    final PaymentGroup? group = ref.read(groupServiceProvider.select(
+       // Use firstWhereOrNull from package:collection
+       (groups) => groups.firstWhereOrNull((g) => g.id == widget.groupId)
+    ));
+
+    // Check if group data is available
+    if (group == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Error: Group data not available.'))
+       );
+       return;
+    }
+    // Check if there are members to pay
+    if (group.members.isEmpty && preselectedPayerId == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Cannot add expense: No members in the group.'))
+       );
+       return;
+    }
+
+    // Navigate to AddExpenseScreen
     final result = await Navigator.push<Expense>(
       context,
       MaterialPageRoute(
         builder: (context) => AddExpenseScreen(
-          groupMembers: widget.group.members,
+          groupMembers: group.members, // Use members from fetched group
           preselectedPayerId: preselectedPayerId,
           currencySymbol: currencyFormatter.currencySymbol,
         ),
       ),
     );
 
+    // If an expense was successfully created and returned
     if (result != null && mounted) {
-      _didDataChange = true; // Set flag: Data has potentially changed
-      setState(() {
-        widget.group.expenses.add(result);
-        widget.group.expenses.sort((a, b) => b.date.compareTo(a.date));
-        // Rebuild widgets to reflect change immediately within MainScreen tabs
-        _updateWidgetOptions();
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text('Expense "${result.description}" saved.'),
-             duration: const Duration(seconds: 2),
-            )
-         );
-      });
+      // Call the provider's method to add the expense to the central state
+      ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.groupId, result);
+
+      // Show confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Expense "${result.description}" saved.'),
+          duration: const Duration(seconds: 2),
+        )
+      );
     }
-    // NOTE: No explicit pop here, the pop happens either in AddExpenseScreen
-    // or when the user presses the back button (_goBack).
   }
-
-  // --- ADDED: Method for handling the back button press ---
-  void _goBack() {
-    // Pop the screen and return the value of _didDataChange.
-    // This signals to GroupListScreen whether a refresh might be needed.
-    Navigator.of(context).pop(_didDataChange);
-  }
-
 
   @override
   Widget build(BuildContext context) {
-    // WillPopScope can intercept the system back button press
-    // to ensure our _goBack logic (returning the flag) is used.
-    return WillPopScope(
-      onWillPop: () async {
-        // When system back button is pressed, call our _goBack logic
-        _goBack();
-        // Return false to prevent the default system back navigation,
-        // as _goBack already handled it.
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.group.name),
-          // Use the modified back button logic for the AppBar back arrow
-          leading: IconButton(
-             icon: const Icon(Icons.arrow_back),
-             tooltip: 'Back to My Groups',
-             onPressed: _goBack, // Use the new method
+    // --- Use ref.watch to get the current group data ---
+    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
+    final PaymentGroup? currentGroup = ref.watch(groupServiceProvider.select(
+      // Use firstWhereOrNull from package:collection
+      (groups) => groups.firstWhereOrNull((g) => g.id == widget.groupId)
+    ));
+
+    // --- Handle null case: Group not found ---
+    if (currentGroup == null) {
+       return Scaffold(
+         appBar: AppBar(
+            title: const Text("Group Not Found"),
+            leading: IconButton(
+               icon: const Icon(Icons.arrow_back),
+               onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
+         body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "This group may have been deleted or is no longer available.",
+                  textAlign: TextAlign.center,
+                ),
+              )
+         ),
+       );
+    }
+
+    // If group data is available, build the main UI:
+
+    // Build widget options dynamically using the non-null currentGroup
+    final List<Widget> widgetOptions = <Widget>[
+        DashboardScreen(
+          group: currentGroup, // Pass the non-null group
+          onAddExpenseRequested: _navigateToAddExpense, // Pass the callback
         ),
-        body: Center(
-          child: (_selectedIndex >= 0 && _selectedIndex < _widgetOptions.length)
-                 ? _widgetOptions.elementAt(_selectedIndex)
-                 : const Center(child: Text("Invalid tab selected")), // Fallback
+        HistoryScreen(group: currentGroup), // Pass the non-null group
+        SettingsScreen(group: currentGroup), // Pass the non-null group
+      ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(currentGroup.name),
+        leading: IconButton(
+           icon: const Icon(Icons.arrow_back),
+           tooltip: 'Back to My Groups',
+           onPressed: () => Navigator.of(context).pop(),
         ),
-        floatingActionButton: FloatingActionButton(
-          // FAB press triggers adding expense, _goBack handles returning signal later
-          onPressed: () => _navigateToAddExpense(),
-          tooltip: 'Add Expense to ${widget.group.name}',
-          child: const Icon(Icons.add),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 6.0,
-          color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
-          elevation: Theme.of(context).bottomAppBarTheme.elevation ?? 2,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
-              _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
-              const SizedBox(width: 40), // Spacer for FAB
-              _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2),
-            ],
-          ),
+      ),
+      body: Center(
+        child: (_selectedIndex >= 0 && _selectedIndex < widgetOptions.length)
+               ? widgetOptions.elementAt(_selectedIndex)
+               : const Center(child: Text("Invalid tab selected")),
+      ),
+      floatingActionButton: FloatingActionButton(
+        // Call _navigateToAddExpense without preselected payer for FAB
+        onPressed: () => _navigateToAddExpense(),
+        tooltip: 'Add Expense to ${currentGroup.name}',
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 6.0,
+        color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
+        elevation: Theme.of(context).bottomAppBarTheme.elevation ?? 2,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
+            _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
+            const SizedBox(width: 40), // Spacer for FAB
+            _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2),
+          ],
         ),
       ),
     );
   }
 
-  // Helper method to build individual navigation items for the BottomAppBar
+  // Helper method to build navigation items
    Widget _buildNavItem(IconData icon, IconData activeIcon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
     final Color? itemColor = isSelected
