@@ -1,7 +1,7 @@
-// lib/widgets/shared/expense_card.dart
+// lib/widgets/history/expense_card.dart
 import 'package:flutter/material.dart';
 import '../../models/models.dart';       // Import Expense and User models
-import '../../utils/formatters.dart';  // Import formatters (to be created)
+import '../../utils/formatters.dart';  // Import formatters
 
 class ExpenseCard extends StatelessWidget {
   final Expense expense; // The expense data to display
@@ -17,19 +17,28 @@ class ExpenseCard extends StatelessWidget {
   Widget build(BuildContext context) {
      final theme = Theme.of(context); // Get theme data
 
+     // Use a standard Card for consistent styling with other elements if needed,
+     // or a Container if more custom styling is desired. Card is simpler here.
      return Card(
-       elevation: 1, // Subtle elevation
-       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // Consistent rounding
-       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0), // Consistent margin
+       // Use elevation from the global CardTheme defined in main.dart
+       // elevation: 1,
+       // Use shape from the global CardTheme
+       // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+       // Margin can be controlled by the ListView padding or kept standard
+       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 0),
        child: ListTile(
           // Leading icon representing an expense/receipt
-          leading: Icon(Icons.receipt_long_outlined, color: theme.colorScheme.secondary), // Use theme color
+          leading: CircleAvatar( // Use CircleAvatar for better alignment and visual appeal
+            backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.6),
+            foregroundColor: theme.colorScheme.onSecondaryContainer,
+            child: const Icon(Icons.receipt_long_outlined, size: 20),
+          ),
           // Display expense description
           title: Text(
               expense.description,
-              style: const TextStyle(fontWeight: FontWeight.w500), // Medium weight title
-              maxLines: 1, // Prevent long descriptions from wrapping excessively
-              overflow: TextOverflow.ellipsis, // Use ellipsis if too long
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600), // Adjusted style
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
           ),
           // Display who paid and when
           subtitle: Text(
@@ -42,15 +51,14 @@ class ExpenseCard extends StatelessWidget {
           trailing: Text(
              // Requires currencyFormatter from utils/formatters.dart
              currencyFormatter.format(expense.amount),
-             style: TextStyle(
+             style: theme.textTheme.bodyMedium?.copyWith( // Adjusted style
                  fontWeight: FontWeight.bold,
-                 fontSize: 15,
-                 color: theme.colorScheme.onSurface // Standard text color for amount
+                 color: theme.colorScheme.primary // Highlight amount
              )
           ),
-          // Optional: Add density for a more compact list item
-          // visualDensity: VisualDensity.compact,
-          // contentPadding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          dense: true, // Make the ListTile more compact
+          // Optional: Add onTap for viewing expense details later
+          // onTap: () { /* Navigate to expense detail screen */ },
        ),
      );
   }
