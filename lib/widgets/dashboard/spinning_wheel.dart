@@ -1,6 +1,8 @@
 // lib/widgets/dashboard/spinning_wheel.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart'; // For firstWhereOrNull and listEquals
+
 import '../../models/models.dart';
 import 'spinning_wheel_painter.dart'; // Import the painter
 
@@ -8,23 +10,26 @@ import 'spinning_wheel_painter.dart'; // Import the painter
 typedef SpinCompletionCallback = void Function(User selectedUser);
 
 class SpinningWheel extends StatefulWidget {
-  final List<User> users;
-  final double totalGroupExpenses;
+  final List<User> users; // Users MUST have updated totalPaid
+  final double totalGroupExpenses; // Needed for context, maybe for dynamic hysteresis
   final SpinCompletionCallback onSpinComplete;
   final Duration duration;
   final VoidCallback? onSpinStart;
-  final bool autoSpin; // New flag to start spin automatically
-  final double size; // Allow customizing size
+  final bool autoSpin;
+  final double size;
+  // Optional: Pass hysteresis dynamically if needed
+  // final double hysteresisValue;
 
   const SpinningWheel({
     super.key,
     required this.users,
-    required this.totalGroupExpenses,
+    required this.totalGroupExpenses, // Keep for context or dynamic hysteresis
     required this.onSpinComplete,
     this.duration = const Duration(seconds: 4),
     this.onSpinStart,
-    this.autoSpin = false, // Default to false
-    this.size = 250, // Default size
+    this.autoSpin = false,
+    this.size = 250,
+    // this.hysteresisValue = 200.0, // Example if passed in
   });
 
   @override
@@ -39,7 +44,6 @@ class _SpinningWheelState extends State<SpinningWheel>
   User? _selectedUser;
   double _finalAngle = 0.0;
   bool _isSpinning = false;
-  // Key to potentially force painter redraw if needed
   final GlobalKey _painterKey = GlobalKey();
 
   @override
@@ -53,19 +57,16 @@ class _SpinningWheelState extends State<SpinningWheel>
     _animation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Curves.decelerate, // Use a decelerating curve
+        curve: Curves.decelerate,
       ),
     );
 
+    // Initial calculation
     _calculateSegments();
 
-    // Auto spin if requested
     if (widget.autoSpin) {
-      // Use addPostFrameCallback to ensure the first frame is built
       WidgetsBinding.instance.addPostFrameCallback((_) {
-         if (mounted) { // Ensure widget is still mounted
-           spin();
-         }
+         if (mounted) { spin(); }
       });
     }
   }
@@ -73,30 +74,28 @@ class _SpinningWheelState extends State<SpinningWheel>
   @override
   void didUpdateWidget(covariant SpinningWheel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Recalculate segments if input data changes
-    if (widget.users != oldWidget.users || widget.totalGroupExpenses != oldWidget.totalGroupExpenses) {
+    // Recalculate segments ONLY if user list or their totalPaid amounts change significantly
+    // Comparing totalPaid requires iterating or a more complex check.
+    // For simplicity, recalculate if user list instance changes or length changes.
+    // A better check would involve comparing the actual totalPaid values.
+    bool usersChanged = !ListEquality().equals(widget.users.map((u) => u.id).toList(), oldWidget.users.map((u) => u.id).toList()) ||
+                        !ListEquality().equals(widget.users.map((u) => u.totalPaid).toList(), oldWidget.users.map((u) => u.totalPaid).toList());
+
+    if (usersChanged) {
+       print("SpinningWheel: User data changed, recalculating segments.");
       _calculateSegments();
     }
-    // Update animation duration if it changes
     if (widget.duration != oldWidget.duration) {
       _controller.duration = widget.duration;
     }
   }
 
-
   void _onAnimationStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
-      if (mounted) { // Check mounted before calling setState
-          setState(() {
-            _isSpinning = false;
-          });
-      }
+      if (mounted) { setState(() { _isSpinning = false; }); }
       if (_selectedUser != null) {
-        // Add a slight delay before calling callback to let user see result
         Future.delayed(const Duration(milliseconds: 500), () {
-           if (mounted) { // Check again before calling callback
-              widget.onSpinComplete(_selectedUser!);
-           }
+           if (mounted) { widget.onSpinComplete(_selectedUser!); }
         });
       }
     }
@@ -108,69 +107,137 @@ class _SpinningWheelState extends State<SpinningWheel>
     super.dispose();
   }
 
+  // --- Calculate Segment Weights using the new Algorithm ---
   void _calculateSegments() {
-    // ... (Calculation logic remains the same as before) ...
+    // Ensure we have users with calculated totalPaid values
     if (widget.users.isEmpty) {
-       if(mounted){ setState(() => _segments = []); } else { _segments = []; }
+      if(mounted){ setState(() => _segments = []); } else { _segments = []; }
       return;
     }
+
     final List<SegmentData> calculatedSegments = [];
-    double totalWeight = 0;
-    final double fairShare = widget.totalGroupExpenses > 0 && widget.users.isNotEmpty
-        ? widget.totalGroupExpenses / widget.users.length : 0;
-    const double epsilon = 1.0;
-    for (final user in widget.users) {
-      final double amountBehind = max(0, fairShare - user.totalPaid);
-      final double weight = amountBehind + epsilon;
-      totalWeight += weight;
-      calculatedSegments.add(SegmentData(
-        user: user, weight: weight,
-        color: user.profileColor ?? Colors.grey.shade300,
-      ));
+    double calculatedTotalWeight = 0;
+    // Use fixed hysteresis for now, could be calculated dynamically
+    final double hysteresis = 200.0;
+    print("SpinningWheel: Using Hysteresis: $hysteresis");
+
+    // 1. Find highest sum paid
+    // Ensure users list is not empty before reducing
+    final double highestSum = widget.users.map((u) => u.totalPaid).reduce(max);
+    print("SpinningWheel: Highest sum paid: $highestSum");
+
+    // 2. Identify outliers (paid less than highest - hysteresis)
+    final List<User> outliers = widget.users.where((user) {
+      return user.totalPaid < (highestSum - hysteresis);
+    }).toList();
+
+    // 3. Determine participants for weight calculation
+    final List<User> participants;
+    if (outliers.isNotEmpty) {
+      participants = outliers;
+      print("SpinningWheel: Outliers detected: ${participants.map((u) => '${u.name} (${u.totalPaid.toStringAsFixed(2)})').toList()}");
+    } else {
+      participants = List.from(widget.users); // Use a copy
+      print("SpinningWheel: No significant outliers, using all users.");
     }
-    if (totalWeight <= epsilon * widget.users.length) {
-      totalWeight = 0;
-      for (int i = 0; i < calculatedSegments.length; i++) {
-         final equalWeight = 10.0;
-         calculatedSegments[i] = SegmentData(
-            user: calculatedSegments[i].user, weight: equalWeight, color: calculatedSegments[i].color,
-         );
-         totalWeight += equalWeight;
+
+    // Safety check if somehow participants list ends up empty
+    if (participants.isEmpty) {
+      print("SpinningWheel Warning: No participants selected after outlier check. Defaulting to all users.");
+      participants.addAll(widget.users);
+       if (participants.isEmpty) { // Still empty? (Only if widget.users was empty initially)
+         if(mounted){ setState(() => _segments = []); } else { _segments = []; }
+         return;
       }
     }
-    if(mounted){ setState(() { _segments = calculatedSegments; });
-    } else { _segments = calculatedSegments; }
+
+    // 4. Calculate Weights
+    // a) Find Xmin among the selected participants
+    final double xMin = participants.map((u) => u.totalPaid).reduce(min);
+    print("SpinningWheel: Minimum sum among participants (Xmin): $xMin");
+
+    // d) Calculate Weight = Hysteresis - (Xu - Xmin) for each *original* user
+    //    Only assign weight if the user is in the 'participants' list.
+    for (final user in widget.users) {
+      double weight = 0;
+      // Check if this user is part of the group selected for calculation
+      if (participants.any((p) => p.id == user.id)) {
+        weight = max(0, hysteresis - (user.totalPaid - xMin)); // Ensure weight >= 0
+      }
+
+      calculatedSegments.add(SegmentData(
+        user: user,
+        weight: weight,
+        color: user.profileColor ?? Colors.grey.shade300,
+      ));
+      calculatedTotalWeight += weight;
+    }
+
+    // Safety check: If total weight is 0 (e.g., one participant exactly at hysteresis boundary)
+    // assign equal weight to all participants as fallback.
+    if (calculatedTotalWeight <= 0 && participants.isNotEmpty) {
+       print("SpinningWheel Warning: Calculated total weight is zero. Assigning equal weights to participants.");
+       calculatedTotalWeight = 0; // Reset
+       calculatedSegments.clear(); // Clear previous weights
+       final double equalWeight = 10.0;
+       for (final user in widget.users) {
+           double weight = 0;
+           if (participants.any((p) => p.id == user.id)) {
+              weight = equalWeight;
+              calculatedTotalWeight += weight;
+           }
+           calculatedSegments.add(SegmentData(
+              user: user,
+              weight: weight,
+              color: user.profileColor ?? Colors.grey.shade300,
+           ));
+       }
+    }
+
+    // Update the state with the newly calculated segments
+    if(mounted){
+      setState(() { _segments = calculatedSegments; });
+    } else {
+      _segments = calculatedSegments;
+    }
+    print("SpinningWheel: Segments calculated. Total Weight: $calculatedTotalWeight");
+    // Optional detailed print:
+    // print("SpinningWheel: Calculated Segments: ${_segments.map((s) => '${s.user.name}: ${s.weight.toStringAsFixed(2)}')}");
   }
 
+
+  // --- Select Winner Based on Weights --- (Logic remains the same)
   User? _selectWinner(double totalWeight) {
-    // ... (Selection logic remains the same as before) ...
-     if (widget.users.isEmpty || totalWeight <= 0 || _segments.isEmpty) return null;
+    if (widget.users.isEmpty || totalWeight <= 0 || _segments.isEmpty) return null;
     final randomValue = Random().nextDouble() * totalWeight;
     double cumulativeWeight = 0;
     for (final segment in _segments) {
       cumulativeWeight += segment.weight;
       if (randomValue <= cumulativeWeight) { return segment.user; }
     }
+    print("SpinningWheel Warning: Winner selection fallback triggered.");
     return _segments.last.user;
   }
 
+  // --- Calculate Target Angle for Winner --- (Logic remains the same)
   double _calculateTargetAngle(User winner, double totalWeight) {
-    // ... (Angle calculation remains the same as before) ...
-      if (totalWeight <= 0 || _segments.isEmpty) return Random().nextDouble() * 2 * pi;
+     if (totalWeight <= 0 || _segments.isEmpty) return Random().nextDouble() * 2 * pi;
      double startAngle = 0;
      for (final segment in _segments) {
         final sweepAngle = (segment.weight / totalWeight) * 2 * pi;
         if (segment.user.id == winner.id) { return startAngle + sweepAngle / 2; }
         startAngle += sweepAngle;
      }
+     print("SpinningWheel Warning: Target angle calculation fallback triggered.");
      return 0;
   }
 
+  // --- Start the Spin Animation --- (Logic remains the same)
   void spin() {
     if (_isSpinning || widget.users.isEmpty || !mounted) return;
-
     widget.onSpinStart?.call();
 
+    // Use the current segments state for weight calculation
     final double currentTotalWeight = _segments.fold(0.0, (sum, seg) => sum + seg.weight);
     if (currentTotalWeight <= 0) {
        print("SpinningWheel: Cannot spin, total weight is zero or segments empty.");
@@ -190,34 +257,37 @@ class _SpinningWheelState extends State<SpinningWheel>
     }
 
     final targetAngle = _calculateTargetAngle(_selectedUser!, currentTotalWeight);
-    final rotations = 5 + Random().nextDouble() * 3; // 5-8 rotations
+    final rotations = 5 + Random().nextDouble() * 3;
     _finalAngle = rotations * 2 * pi + targetAngle;
 
     _controller.reset();
     _animation = Tween<double>(begin: 0, end: _finalAngle).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.decelerate, // Use decelerate curve
-      ),
+      CurvedAnimation(parent: _controller, curve: Curves.decelerate),
     );
-     if (mounted) { // Check mounted before setState
-        setState(() { _isSpinning = true; });
-     }
+     if (mounted) { setState(() { _isSpinning = true; }); }
     _controller.forward();
   }
 
+
+  // --- Build Method --- (Remains the same as the enhanced version)
   @override
   Widget build(BuildContext context) {
-    // If segments haven't been calculated yet, show a placeholder
-     if (_segments.isEmpty) {
+     if (_segments.isEmpty && widget.users.isNotEmpty) { // Show loading only if users exist but segments aren't ready
        return SizedBox(
          width: widget.size,
          height: widget.size,
-         child: const Center(child: CircularProgressIndicator()), // Or a placeholder message
+         child: const Center(child: CircularProgressIndicator()),
+       );
+     }
+     if (widget.users.isEmpty){ // Handle case where no users are passed in
+        return SizedBox(
+         width: widget.size,
+         height: widget.size,
+         child: const Center(child: Text("No users in group.", style: TextStyle(color: Colors.grey))),
        );
      }
 
-    return SizedBox( // Constrain the size of the widget
+    return SizedBox(
       width: widget.size,
       height: widget.size,
       child: Stack(
@@ -226,19 +296,18 @@ class _SpinningWheelState extends State<SpinningWheel>
           // The Wheel
           AnimatedBuilder(
               animation: _animation,
-              key: _painterKey, // Assign key
+              key: _painterKey,
               builder: (context, child) {
                 return CustomPaint(
                   size: Size.infinite,
-                  painter: SpinningWheelPainter( // Pass data to painter
-                    segments: _segments,
+                  painter: SpinningWheelPainter(
+                    segments: _segments, // Use current segments state
                     totalWeight: _segments.fold(0.0, (sum, seg) => sum + seg.weight),
                   ),
                 );
               }),
-
-          // The Pointer/Arrow (Larger and styled)
-          IgnorePointer( // Make pointer non-interactive
+          // The Pointer/Arrow
+          IgnorePointer(
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
@@ -247,29 +316,16 @@ class _SpinningWheelState extends State<SpinningWheel>
                   child: child,
                 );
               },
-              child: CustomPaint( // Use CustomPaint for a nicer arrow
-                  size: Size(widget.size * 0.15, widget.size * 0.4), // Adjust arrow size relative to wheel
+              child: CustomPaint(
+                  size: Size(widget.size * 0.15, widget.size * 0.4),
                   painter: _ArrowPainter(),
               ),
-              // --- Alternative: Icon based arrow ---
-              // child: Transform.rotate(
-              //   angle: pi / 2, // Point upwards initially if using play_arrow
-              //   child: Icon(
-              //     Icons.play_arrow, // A different icon shape
-              //     size: widget.size * 0.25, // Larger size
-              //     color: Colors.black.withOpacity(0.7),
-              //     shadows: const [
-              //       Shadow(color: Colors.black38, blurRadius: 5, offset: Offset(2, 2))
-              //     ],
-              //   ),
-              // ),
             ),
           ),
-
-          // Center pin (slightly styled)
+          // Center pin
           IgnorePointer(
             child: Container(
-               width: widget.size * 0.08, // Relative size
+               width: widget.size * 0.08,
                height: widget.size * 0.08,
                decoration: BoxDecoration(
                   gradient: RadialGradient(
@@ -289,31 +345,25 @@ class _SpinningWheelState extends State<SpinningWheel>
   }
 }
 
-// --- Custom Painter for the Arrow ---
+// --- Custom Painter for the Arrow --- (Remains the same)
 class _ArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
       ..color = Colors.black.withOpacity(0.75)
       ..style = PaintingStyle.fill;
-
     final Path path = Path();
-    // Simple triangle arrow shape pointing downwards from the center
-    path.moveTo(size.width / 2, size.height); // Tip of the arrow at the bottom center
-    path.lineTo(0, size.height * 0.3); // Top-left corner
-    path.lineTo(size.width, size.height * 0.3); // Top-right corner
+    path.moveTo(size.width / 2, size.height);
+    path.lineTo(0, size.height * 0.3);
+    path.lineTo(size.width, size.height * 0.3);
     path.close();
-
-    // Add a subtle border or highlight (optional)
     final Paint borderPaint = Paint()
       ..color = Colors.white.withOpacity(0.5)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
-
     canvas.drawPath(path, paint);
     canvas.drawPath(path, borderPaint);
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
