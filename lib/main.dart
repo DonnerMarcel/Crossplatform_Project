@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'screens/group_list_screen.dart'; // Import the new location for GroupListScreen
+import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
+import 'screens/group_list_screen.dart';
 
 void main() {
   runApp(const FairFlipApp());
@@ -11,36 +12,56 @@ class FairFlipApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define base color scheme
+    final colorScheme = ColorScheme.fromSeed(
+        seedColor: Colors.blueAccent,
+        // Optional: Override specific colors
+        // background: Colors.grey[100], // Example background
+    );
+
+    // Define base text theme using Google Fonts
+    final baseTextTheme = GoogleFonts.latoTextTheme(Theme.of(context).textTheme);
+
     return MaterialApp(
-      title: 'FairFlip', // App title remains
-      theme: ThemeData( // Theme definition remains the same
+      title: 'FairFlip',
+      theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        scaffoldBackgroundColor: Colors.grey[100],
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[100],
-          elevation: 0,
-          foregroundColor: Colors.black87,
+        colorScheme: colorScheme, // Use the defined color scheme
+        // Apply Lato font to the entire app text theme
+        textTheme: baseTextTheme.copyWith(
+          // Optional: Customize specific text styles further
+           titleLarge: baseTextTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+           titleMedium: baseTextTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
+        // Apply background color globally
+        scaffoldBackgroundColor: Colors.grey[50], // Slightly off-white background
+
+        appBarTheme: AppBarTheme(
+          // Make AppBar blend with background, more modern look
+          backgroundColor: Colors.grey[50], // Match scaffold background
+          elevation: 0, // No shadow for flat design
+          foregroundColor: colorScheme.onSurface, // Text/icon color based on theme
+          titleTextStyle: baseTextTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+        ),
+        // Keep card theme simple as we use Container in list item now
         cardTheme: CardTheme(
           elevation: 1,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          // Consistent margin for cards unless overridden
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+          // Ensure cards don't have forced white background if theme changes
+          color: colorScheme.surface,
         ),
-        bottomAppBarTheme: const BottomAppBarTheme(
-             color: Colors.white, // Example color
+        bottomAppBarTheme: BottomAppBarTheme(
+             color: colorScheme.surface, // Use theme surface color
              elevation: 2,
         ),
         floatingActionButtonTheme: FloatingActionButtonThemeData(
-           // Use colorScheme for consistency
-           backgroundColor: ColorScheme.fromSeed(seedColor: Colors.blueAccent).primary,
-           foregroundColor: Colors.white,
+           backgroundColor: colorScheme.primary,
+           foregroundColor: colorScheme.onPrimary,
         ),
-        // Add text theme if you want more control over text styles globally
-        // textTheme: TextTheme(...)
+         // Optional: Style ListTiles globally if needed
+        // listTileTheme: ListTileThemeData(...)
       ),
-      // Set the initial screen to GroupListScreen from its new file
       home: const GroupListScreen(),
     );
   }

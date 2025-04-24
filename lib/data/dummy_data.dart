@@ -46,5 +46,12 @@ List<PaymentGroup> dummyGroups = [
     members: [userMe, userMax, userJohn, userAnna],
     expenses: [], // No expenses yet
   ),
+   // Group 4: "Holiday Trip" - Empty expenses
+  PaymentGroup(
+    id: 'g4',
+    name: 'Foodie Group',
+    members: [userMe, userMax, userAnna],
+    expenses: [], // No expenses yet
+  ),
 ];
 

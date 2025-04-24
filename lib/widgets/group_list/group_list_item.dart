@@ -1,11 +1,11 @@
 // lib/widgets/group_list/group_list_item.dart
 import 'package:flutter/material.dart';
-import '../../models/models.dart'; // Import models (adjust path if needed)
+import '../../models/models.dart';
 
 class GroupListItem extends StatelessWidget {
   final PaymentGroup group;
-  final User currentUser; // Needs the current user to check 'isUserBehind'
-  final VoidCallback onTap; // Callback function when the item is tapped
+  final User currentUser;
+  final VoidCallback onTap;
 
   const GroupListItem({
     super.key,
@@ -16,54 +16,109 @@ class GroupListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check if the current user is behind in this specific group
     final bool userIsBehind = group.isUserBehind(currentUser.id);
+    final theme = Theme.of(context);
 
-    return Card(
-      // Highlight card background if user is behind
-      color: userIsBehind ? Colors.red[50] : null, // Use theme's card color if not behind
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // Consistent corner rounding
-      elevation: 1, // Standard elevation
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0), // Standard margin from theme
-      // Use InkWell for tap effect and to trigger the onTap callback
-      child: InkWell(
-          onTap: onTap, // Execute the callback passed from the parent screen
-          borderRadius: BorderRadius.circular(12), // Match card shape for ripple effect
-          child: ListTile(
-              // Display initials of first member or group letter
-              leading: CircleAvatar(
-                 backgroundColor: userIsBehind
-                     ? Colors.red[100] // Distinct background for avatar if behind
-                     : Theme.of(context).colorScheme.secondaryContainer, // Use theme color otherwise
-                 child: Text(
-                      // Get initials from the first member, or first letter of group name, or '?'
-                      group.members.isNotEmpty
-                          ? group.members.first.initials
-                          : group.name.isNotEmpty ? group.name.substring(0,1).toUpperCase() : '?',
-                      style: TextStyle(
-                          color: userIsBehind
-                              ? Colors.red[800] // Darker text color on the highlighted avatar
-                              : Theme.of(context).colorScheme.onSecondaryContainer, // Theme color otherwise
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold),
-                  ),
-              ),
-              // Display group name
-              title: Text(
-                  group.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold)
-              ),
-              // Display member count
-              subtitle: Text(
-                  '${group.members.length} Member${group.members.length == 1 ? "" : "s"}' // Handle pluralization
-              ),
-              // Display appropriate trailing icon
-              trailing: userIsBehind
-                  ? const Icon(Icons.warning_amber_rounded, color: Colors.red) // Warning icon if behind
-                  : const Icon(Icons.chevron_right, color: Colors.grey), // Standard navigation icon
-              // Optional: Adjust content padding if needed
-              // contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    // Define gradients based on userIsBehind status
+    // --- MODIFIED GRADIENT for highlighted state ---
+    final Gradient cardGradient = userIsBehind
+        ? LinearGradient( // Highlight with primary color shades
+            colors: [
+              theme.colorScheme.primaryContainer.withOpacity(0.5),
+              theme.colorScheme.primary.withOpacity(0.3)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : LinearGradient( // Default gradient
+            colors: [theme.colorScheme.surface, theme.colorScheme.surfaceVariant.withOpacity(0.3)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          );
+
+    // --- MODIFIED AVATAR COLOR for highlighted state ---
+    final Color avatarBackgroundColor = userIsBehind
+        ? theme.colorScheme.primary.withOpacity(0.8) // Use primary color for highlight avatar
+        : (group.members.isNotEmpty ? group.members.first.profileColor : null) ?? theme.colorScheme.secondaryContainer;
+
+    final Color avatarForegroundColor = userIsBehind
+         ? theme.colorScheme.onPrimary // Ensure good contrast on primary color
+         : theme.colorScheme.onSecondaryContainer;
+
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: cardGradient,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            splashColor: theme.colorScheme.primary.withOpacity(0.1),
+            highlightColor: theme.colorScheme.primary.withOpacity(0.05),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                     backgroundColor: avatarBackgroundColor,
+                     foregroundColor: avatarForegroundColor,
+                     radius: 22,
+                     child: Text(
+                          group.members.isNotEmpty
+                              ? group.members.first.initials
+                              : group.name.isNotEmpty ? group.name.substring(0,1).toUpperCase() : '?',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Text content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          group.name,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${group.members.length} Member${group.members.length == 1 ? "" : "s"}',
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // --- MODIFIED TRAILING ICON ---
+                  // Always show chevron, maybe color it differently if behind?
+                  Icon(
+                    Icons.chevron_right,
+                    // Optionally color based on state:
+                    color: userIsBehind ? theme.colorScheme.primary : Colors.grey.shade500,
+                    // Or just keep it standard grey:
+                    // color: Colors.grey.shade500,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+        ),
       ),
     );
   }

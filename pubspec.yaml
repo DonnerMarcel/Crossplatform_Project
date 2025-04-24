@@ -1,20 +1,23 @@
-name: flutter_application_2
+# pubspec.yaml
+name: flutter_application_2 # Oder dein Projektname
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: ^3.7.2
+  sdk: '>=3.0.0 <4.0.0' # Beispiel, passe es an dein SDK an
 
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.19.0 
+  intl: ^0.19.0
+  collection: ^1.17.0 # War schon drin oder ggf. hinzufügen/aktualisieren
+  google_fonts: ^6.1.0 # <-- HINZUGEFÜGT (prüfe die neueste Version)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0 # Beispiel
 
 flutter:
   uses-material-design: true

@@ -19,6 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0; // Index for the selected tab
   late List<Widget> _widgetOptions; // List of widgets for the tabs
+  bool _didDataChange = false; // Flag to track if data changed
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _MainScreenState extends State<MainScreen> {
   // Helper function to build/update the list of widgets for the tabs
   void _updateWidgetOptions() {
        _widgetOptions = <Widget>[
-         // *** CHANGE IS HERE: Pass the callback function ***
+         // Pass the group data AND the callback function down to DashboardScreen
          DashboardScreen(
            group: widget.group,
            onAddExpenseRequested: _navigateToAddExpense, // Pass the method here!
@@ -52,31 +53,24 @@ class _MainScreenState extends State<MainScreen> {
   // Handles navigation to the Add Expense Screen
   // This method is now passed as a callback to DashboardScreen
   void _navigateToAddExpense({String? preselectedPayerId}) async {
-    // Navigate and wait for a result (the new Expense or null)
-    final result = await Navigator.push<Expense>( // Expect an Expense object back
+    final result = await Navigator.push<Expense>(
       context,
       MaterialPageRoute(
         builder: (context) => AddExpenseScreen(
           groupMembers: widget.group.members,
-          preselectedPayerId: preselectedPayerId, // Pass preselected payer if available
-          currencySymbol: currencyFormatter.currencySymbol, // Use formatter
+          preselectedPayerId: preselectedPayerId,
+          currencySymbol: currencyFormatter.currencySymbol,
         ),
       ),
     );
 
-    // If an expense was returned (i.e., saved and popped back)
-    if (result != null && mounted) { // Check mounted for safety after async gap
+    if (result != null && mounted) {
+      _didDataChange = true; // Set flag: Data has potentially changed
       setState(() {
-        // Add the new expense to the group's list IN MEMORY.
         widget.group.expenses.add(result);
-        // Sort expenses by date, newest first
         widget.group.expenses.sort((a, b) => b.date.compareTo(a.date));
-
-        // Re-initialize widget options to ensure child widgets get the updated group data
-        // This forces the children (like DashboardScreen) to rebuild with the new expense list.
+        // Rebuild widgets to reflect change immediately within MainScreen tabs
         _updateWidgetOptions();
-
-         // Show a confirmation message
          ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(
              content: Text('Expense "${result.description}" saved.'),
@@ -85,45 +79,66 @@ class _MainScreenState extends State<MainScreen> {
          );
       });
     }
+    // NOTE: No explicit pop here, the pop happens either in AddExpenseScreen
+    // or when the user presses the back button (_goBack).
   }
+
+  // --- ADDED: Method for handling the back button press ---
+  void _goBack() {
+    // Pop the screen and return the value of _didDataChange.
+    // This signals to GroupListScreen whether a refresh might be needed.
+    Navigator.of(context).pop(_didDataChange);
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.group.name), // Display the group name
-        leading: IconButton( // Back button
-           icon: const Icon(Icons.arrow_back),
-           tooltip: 'Back to My Groups',
-           onPressed: () => Navigator.of(context).pop(),
+    // WillPopScope can intercept the system back button press
+    // to ensure our _goBack logic (returning the flag) is used.
+    return WillPopScope(
+      onWillPop: () async {
+        // When system back button is pressed, call our _goBack logic
+        _goBack();
+        // Return false to prevent the default system back navigation,
+        // as _goBack already handled it.
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.group.name),
+          // Use the modified back button logic for the AppBar back arrow
+          leading: IconButton(
+             icon: const Icon(Icons.arrow_back),
+             tooltip: 'Back to My Groups',
+             onPressed: _goBack, // Use the new method
+          ),
         ),
-      ),
-      body: Center(
-        // Display the widget corresponding to the selected tab index
-        // Add safety check for index range
-        child: (_selectedIndex >= 0 && _selectedIndex < _widgetOptions.length)
-               ? _widgetOptions.elementAt(_selectedIndex)
-               : const Center(child: Text("Invalid tab selected")), // Fallback
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddExpense(), // FAB calls the method directly
-        tooltip: 'Add Expense to ${widget.group.name}',
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6.0,
-        color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
-        elevation: Theme.of(context).bottomAppBarTheme.elevation ?? 2,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
-            _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
-            const SizedBox(width: 40), // Spacer for FAB
-            _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2),
-          ],
+        body: Center(
+          child: (_selectedIndex >= 0 && _selectedIndex < _widgetOptions.length)
+                 ? _widgetOptions.elementAt(_selectedIndex)
+                 : const Center(child: Text("Invalid tab selected")), // Fallback
+        ),
+        floatingActionButton: FloatingActionButton(
+          // FAB press triggers adding expense, _goBack handles returning signal later
+          onPressed: () => _navigateToAddExpense(),
+          tooltip: 'Add Expense to ${widget.group.name}',
+          child: const Icon(Icons.add),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 6.0,
+          color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
+          elevation: Theme.of(context).bottomAppBarTheme.elevation ?? 2,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
+              _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
+              const SizedBox(width: 40), // Spacer for FAB
+              _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2),
+            ],
+          ),
         ),
       ),
     );

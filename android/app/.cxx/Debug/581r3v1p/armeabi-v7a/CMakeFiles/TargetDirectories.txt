@@ -1,0 +1,2 @@
+C:/dev/Uni/CPD/Crossplatform_Project/android/app/.cxx/Debug/581r3v1p/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/dev/Uni/CPD/Crossplatform_Project/android/app/.cxx/Debug/581r3v1p/armeabi-v7a/CMakeFiles/rebuild_cache.dir
