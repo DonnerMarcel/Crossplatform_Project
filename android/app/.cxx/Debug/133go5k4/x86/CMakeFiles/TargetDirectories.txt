@@ -1,0 +1,2 @@
+C:/dev/Uni/CPD/Crossplatform_Project/android/app/.cxx/Debug/133go5k4/x86/CMakeFiles/edit_cache.dir
+C:/dev/Uni/CPD/Crossplatform_Project/android/app/.cxx/Debug/133go5k4/x86/CMakeFiles/rebuild_cache.dir
