@@ -7,9 +7,8 @@ import '../models/models.dart';
 import '../providers.dart';
 import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
-// --- FIX: Correct the import path ---
-import '../widgets/history/expense_card.dart'; // Changed from 'shared' to 'history'
-import '../widgets/dashboard/spinning_wheel.dart';
+import '../widgets/history/expense_card.dart'; // Correct import path
+import '../widgets/dashboard/spinning_wheel_dialog.dart';
 
 // Define the typedef here
 typedef AddExpenseCallback = void Function({String? preselectedPayerId});
@@ -32,8 +31,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 // Change to ConsumerState
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
-  // Method to handle completion of the spin
-  void _handleSpinComplete(User selectedUser) {
+  // Method to show the result dialog after the spin
+  void _showResultDialog(User selectedUser) {
      showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -67,20 +66,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
+  // Method to open the spinning wheel dialog
+  void _openSpinningWheelDialog() {
+     widget.group.userTotals; // Ensure totals are calculated
+
+     if (widget.group.members.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No members in group to spin.'))
+        );
+        return;
+     }
+
+     showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => SpinningWheelDialog(
+            users: widget.group.members,
+            totalGroupExpenses: widget.group.totalGroupExpenses,
+            onSpinComplete: _showResultDialog,
+        ),
+     );
+  }
+
   // Getter for total group expenses
   double get _totalGroupExpenses => widget.group.totalGroupExpenses;
 
   @override
   Widget build(BuildContext context) {
-    // Ensure user totals are calculated
+    // Ensure user totals are calculated before building UI elements that depend on them
     widget.group.userTotals;
 
-    final currentExpenses = widget.group.expenses;
+    // Get the current expenses list safely
+    final currentExpenses = List<Expense>.from(widget.group.expenses);
+    // Sort expenses to find the latest one
+    final sortedExpenses = currentExpenses.sorted((a, b) => b.date.compareTo(a.date));
+    // Get the latest expense only if the list is not empty
+    final Expense? latestExpense = sortedExpenses.firstOrNull;
 
     return ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Total Overview Card
+          // --- Total Overview Card ---
           Card(
             elevation: 2,
             child: Padding(
@@ -103,7 +129,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
            const SizedBox(height: 20),
 
-          // User Balances Section
+          // --- User Balances Section ---
            Text(
                'User Balances (Total Paid in Group)',
                style: Theme.of(context).textTheme.titleLarge
@@ -111,7 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
            const SizedBox(height: 8),
            if (widget.group.members.isNotEmpty)
                 ...widget.group.members.map((user) => UserBalanceCard(
-                      user: user
+                      user: user // Pass user object with updated totalPaid
                     )).toList()
            else
                 const Padding(
@@ -121,30 +147,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             const SizedBox(height: 24),
 
-            // Spinning Wheel
+            // --- Button to open the Spin Dialog ---
             Center(
-              child: SpinningWheel(
-                users: widget.group.members,
-                totalGroupExpenses: _totalGroupExpenses,
-                onSpinComplete: _handleSpinComplete,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.casino_outlined),
+                label: const Text('Who Pays Next?'),
+                onPressed: _openSpinningWheelDialog,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
+                  textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                ),
               ),
             ),
 
            const SizedBox(height: 24),
 
-          // Last Expense Section
+          // --- Last Expense Section ---
            Text(
                'Last Expense',
                style: Theme.of(context).textTheme.titleLarge
            ),
            const SizedBox(height: 8),
-            if (currentExpenses.isNotEmpty)
-               ExpenseCard( // This should now be recognized
-                   // Use firstWhereOrNull for safety if list could become empty
-                   expense: currentExpenses.sorted((a, b) => b.date.compareTo(a.date)).first,
-                   payer: widget.group.getUserById(currentExpenses.sorted((a, b) => b.date.compareTo(a.date)).first.payerId),
+            // --- FIX: Provide arguments to ExpenseCard ---
+            if (latestExpense != null) // Check if latestExpense exists
+               ExpenseCard(
+                   expense: latestExpense, // Pass the latest expense
+                   // Find the payer User object using the helper method
+                   payer: widget.group.getUserById(latestExpense.payerId),
                )
-             else
+             else // Show message if no expenses are recorded yet
                const Padding(
                  padding: EdgeInsets.symmetric(vertical: 8.0),
                  child: Text('No expenses recorded yet for this group.'),
