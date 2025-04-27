@@ -149,13 +149,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                ? widgetOptions.elementAt(_selectedIndex)
                : const Center(child: Text("Invalid tab selected")),
       ),
-      floatingActionButton: FloatingActionButton(
-        // Call _navigateToAddExpense without preselected payer for FAB
-        onPressed: () => _navigateToAddExpense(),
-        tooltip: 'Add Expense to ${currentGroup.name}',
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 6.0,
@@ -166,7 +159,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           children: <Widget>[
             _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
             _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
-            const SizedBox(width: 40), // Spacer for FAB
             _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2),
           ],
         ),

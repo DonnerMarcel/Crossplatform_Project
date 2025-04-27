@@ -9,6 +9,7 @@ import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
 import '../widgets/history/expense_card.dart'; // Correct import path
 import '../widgets/dashboard/spinning_wheel_dialog.dart';
+import 'add_expense_screen.dart';
 
 // Define the typedef here
 typedef AddExpenseCallback = void Function({String? preselectedPayerId});
@@ -51,7 +52,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
          actions: [
            TextButton(
              onPressed: () => Navigator.pop(dialogContext, false),
-             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+             child: const Text('Abbruch', style: TextStyle(color: Colors.grey)),
            ),
            TextButton(
              onPressed: () => Navigator.pop(dialogContext, true),
@@ -86,6 +87,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onSpinComplete: _showResultDialog,
         ),
      );
+  }
+
+  void _navigateToAddExpense({String? preselectedPayerId}) async {
+    // Use ref.read to safely get the current state within this async method
+    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
+    final PaymentGroup? group = ref.read(groupServiceProvider.select(
+      // Use firstWhereOrNull from package:collection
+            (groups) => groups.firstWhereOrNull((g) => g.id == widget.group.id)
+    ));
+
+    // Check if group data is available
+    if (group == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Group data not available.'))
+      );
+      return;
+    }
+    // Check if there are members to pay
+    if (group.members.isEmpty && preselectedPayerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot add expense: No members in the group.'))
+      );
+      return;
+    }
+
+    // Navigate to AddExpenseScreen
+    final result = await Navigator.push<Expense>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddExpenseScreen(
+          groupMembers: group.members, // Use members from fetched group
+          preselectedPayerId: preselectedPayerId,
+          currencySymbol: currencyFormatter.currencySymbol,
+        ),
+      ),
+    );
+
+    // If an expense was successfully created and returned
+    if (result != null && mounted) {
+      // Call the provider's method to add the expense to the central state
+      ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.group.id, result);
+
+      // Show confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Expense "${result.description}" saved.'),
+            duration: const Duration(seconds: 2),
+          )
+      );
+    }
   }
 
   // Getter for total group expenses
@@ -149,18 +200,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // --- Button to open the Spin Dialog ---
             Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.casino_outlined),
-                label: const Text('Who Pays Next?'),
-                onPressed: _openSpinningWheelDialog,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
-                  textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ),
-              ),
+              child:
+                Row(
+                  children: [
+                    Expanded(
+                        child:
+                        ElevatedButton.icon(
+                          label: const Text('Spin Wheel!'),
+                          onPressed: _openSpinningWheelDialog,
+                          style: ElevatedButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
+                              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                          ),
+                        ),
+                    ),
+
+                    SizedBox(width: 8),
+
+                    Expanded(
+                      child:
+                      ElevatedButton.icon(
+                          label: const Text('Add Expense'),
+                          // Call _navigateToAddExpense without preselected payer for FAB
+                          onPressed: _navigateToAddExpense,
+                          style: ElevatedButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
+                              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                          )
+                      )
+                    ),
+                  ]
+                )
             ),
 
            const SizedBox(height: 24),
