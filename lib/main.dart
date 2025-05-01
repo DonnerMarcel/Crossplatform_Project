@@ -1,10 +1,18 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/screens/firestore_test_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/group_list_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   // Wrap the entire app in ProviderScope
   runApp(
     const ProviderScope( // <-- ADDED ProviderScope HERE
@@ -20,7 +28,7 @@ class FairFlipApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Define base color scheme
     final colorScheme = ColorScheme.fromSeed(
-        seedColor: Colors.blueAccent,
+        seedColor: Colors.greenAccent,
         // Optional: Override specific colors
         // background: Colors.grey[100], // Example background
     );
@@ -68,7 +76,7 @@ class FairFlipApp extends StatelessWidget {
          // Optional: Style ListTiles globally if needed
         // listTileTheme: ListTileThemeData(...)
       ),
-      home: const GroupListScreen(),
+      home: const FirestoreTestScreen(), // GroupListScreen(),
     );
   }
 }

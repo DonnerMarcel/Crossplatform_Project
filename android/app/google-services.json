@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "744591130013",
+    "project_id": "fairflip-420gg",
+    "storage_bucket": "fairflip-420gg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744591130013:android:14abc13498110318ed8374",
+        "android_client_info": {
+          "package_name": "fhooe.sail.mc.crossplatform_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJifLSOb432SIE5ePZtxdDCIjvWott0kY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
