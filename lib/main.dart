@@ -1,6 +1,5 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_application_2/screens/firestore_test_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -76,7 +75,7 @@ class FairFlipApp extends StatelessWidget {
          // Optional: Style ListTiles globally if needed
         // listTileTheme: ListTileThemeData(...)
       ),
-      home: const FirestoreTestScreen(), // GroupListScreen(),
+      home: const GroupListScreen(),
     );
   }
 }
