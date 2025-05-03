@@ -1,13 +1,12 @@
-// lib/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart'; // For .sorted() and firstWhereOrNull
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers.dart';
 import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
-import '../widgets/history/expense_card.dart'; // Correct import path
+import '../widgets/history/expense_card.dart';
 import '../widgets/dashboard/spinning_wheel_dialog.dart';
 import 'add_expense_screen.dart';
 
@@ -32,7 +31,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 // Change to ConsumerState
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
-  // Method to show the result dialog after the spin
   void _showResultDialog(User selectedUser) {
      showDialog<bool>(
       context: context,
@@ -69,7 +67,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // Method to open the spinning wheel dialog
   void _openSpinningWheelDialog() {
-     widget.group.userTotals; // Ensure totals are calculated
+     widget.group.userTotals;
 
      if (widget.group.members.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,10 +88,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _navigateToAddExpense({String? preselectedPayerId}) async {
-    // Use ref.read to safely get the current state within this async method
-    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
     final PaymentGroup? group = ref.read(groupServiceProvider.select(
-      // Use firstWhereOrNull from package:collection
             (groups) => groups.firstWhereOrNull((g) => g.id == widget.group.id)
     ));
 
@@ -104,6 +99,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
       return;
     }
+
     // Check if there are members to pay
     if (group.members.isEmpty && preselectedPayerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +113,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => AddExpenseScreen(
-          groupMembers: group.members, // Use members from fetched group
+          groupMembers: group.members,
           preselectedPayerId: preselectedPayerId,
           currencySymbol: currencyFormatter.currencySymbol,
         ),
@@ -126,7 +122,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // If an expense was successfully created and returned
     if (result != null && mounted) {
-      // Call the provider's method to add the expense to the central state
       ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.group.id, result);
 
       // Show confirmation
@@ -144,14 +139,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure user totals are calculated before building UI elements that depend on them
     widget.group.userTotals;
 
-    // Get the current expenses list safely
     final currentExpenses = List<Expense>.from(widget.group.expenses);
-    // Sort expenses to find the latest one
     final sortedExpenses = currentExpenses.sorted((a, b) => b.date.compareTo(a.date));
-    // Get the latest expense only if the list is not empty
     final Expense? latestExpense = sortedExpenses.firstOrNull;
 
     return ListView(
@@ -188,7 +179,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
            const SizedBox(height: 8),
            if (widget.group.members.isNotEmpty)
                 ...widget.group.members.map((user) => UserBalanceCard(
-                      user: user // Pass user object with updated totalPaid
+                      user: user
                     )).toList()
            else
                 const Padding(
@@ -224,7 +215,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child:
                       ElevatedButton.icon(
                           label: const Text('Add Expense'),
-                          // Call _navigateToAddExpense without preselected payer for FAB
                           onPressed: _navigateToAddExpense,
                           style: ElevatedButton.styleFrom(
                               foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -247,14 +237,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                style: Theme.of(context).textTheme.titleLarge
            ),
            const SizedBox(height: 8),
-            // --- FIX: Provide arguments to ExpenseCard ---
-            if (latestExpense != null) // Check if latestExpense exists
+            if (latestExpense != null)
                ExpenseCard(
-                   expense: latestExpense, // Pass the latest expense
-                   // Find the payer User object using the helper method
+                   expense: latestExpense,
                    payer: widget.group.getUserById(latestExpense.payerId),
                )
-             else // Show message if no expenses are recorded yet
+             else
                const Padding(
                  padding: EdgeInsets.symmetric(vertical: 8.0),
                  child: Text('No expenses recorded yet for this group.'),

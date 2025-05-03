@@ -1,35 +1,31 @@
-// lib/widgets/dashboard/spinning_wheel.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart'; // For firstWhereOrNull and listEquals
+import 'package:collection/collection.dart';
 
 import '../../models/models.dart';
-import 'spinning_wheel_painter.dart'; // Import the painter
+import 'spinning_wheel_painter.dart';
 
 // Callback function type when spin completes
 typedef SpinCompletionCallback = void Function(User selectedUser);
 
 class SpinningWheel extends StatefulWidget {
-  final List<User> users; // Users MUST have updated totalPaid
-  final double totalGroupExpenses; // Needed for context, maybe for dynamic hysteresis
+  final List<User> users;
+  final double totalGroupExpenses;
   final SpinCompletionCallback onSpinComplete;
   final Duration duration;
   final VoidCallback? onSpinStart;
   final bool autoSpin;
   final double size;
-  // Optional: Pass hysteresis dynamically if needed
-  // final double hysteresisValue;
 
   const SpinningWheel({
     super.key,
     required this.users,
-    required this.totalGroupExpenses, // Keep for context or dynamic hysteresis
+    required this.totalGroupExpenses,
     required this.onSpinComplete,
     this.duration = const Duration(seconds: 4),
     this.onSpinStart,
     this.autoSpin = false,
     this.size = 250,
-    // this.hysteresisValue = 200.0, // Example if passed in
   });
 
   @override
@@ -74,10 +70,6 @@ class _SpinningWheelState extends State<SpinningWheel>
   @override
   void didUpdateWidget(covariant SpinningWheel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Recalculate segments ONLY if user list or their totalPaid amounts change significantly
-    // Comparing totalPaid requires iterating or a more complex check.
-    // For simplicity, recalculate if user list instance changes or length changes.
-    // A better check would involve comparing the actual totalPaid values.
     bool usersChanged = !ListEquality().equals(widget.users.map((u) => u.id).toList(), oldWidget.users.map((u) => u.id).toList()) ||
                         !ListEquality().equals(widget.users.map((u) => u.totalPaid).toList(), oldWidget.users.map((u) => u.totalPaid).toList());
 
@@ -109,7 +101,6 @@ class _SpinningWheelState extends State<SpinningWheel>
 
   // --- Calculate Segment Weights using the new Algorithm ---
   void _calculateSegments() {
-    // Ensure we have users with calculated totalPaid values
     if (widget.users.isEmpty) {
       if(mounted){ setState(() => _segments = []); } else { _segments = []; }
       return;
@@ -117,12 +108,10 @@ class _SpinningWheelState extends State<SpinningWheel>
 
     final List<SegmentData> calculatedSegments = [];
     double calculatedTotalWeight = 0;
-    // Use fixed hysteresis for now, could be calculated dynamically
     final double hysteresis = 200.0;
     print("SpinningWheel: Using Hysteresis: $hysteresis");
 
     // 1. Find highest sum paid
-    // Ensure users list is not empty before reducing
     final double highestSum = widget.users.map((u) => u.totalPaid).reduce(max);
     print("SpinningWheel: Highest sum paid: $highestSum");
 
@@ -152,7 +141,6 @@ class _SpinningWheelState extends State<SpinningWheel>
     }
 
     // 4. Calculate Weights
-    // a) Find Xmin among the selected participants
     final double xMin = participants.map((u) => u.totalPaid).reduce(min);
     print("SpinningWheel: Minimum sum among participants (Xmin): $xMin");
 
@@ -200,10 +188,8 @@ class _SpinningWheelState extends State<SpinningWheel>
     } else {
       _segments = calculatedSegments;
     }
-    print("SpinningWheel: Segments calculated. Total Weight: $calculatedTotalWeight");
-    // Optional detailed print:
-    // print("SpinningWheel: Calculated Segments: ${_segments.map((s) => '${s.user.name}: ${s.weight.toStringAsFixed(2)}')}");
-  }
+      print("SpinningWheel: Segments calculated. Total Weight: $calculatedTotalWeight");
+    }
 
 
   // --- Select Winner Based on Weights --- (Logic remains the same)

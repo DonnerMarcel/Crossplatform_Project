@@ -1,4 +1,3 @@
-// lib/widgets/group_list/group_list_item.dart
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 
@@ -20,9 +19,8 @@ class GroupListItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Define gradients based on userIsBehind status
-    // --- MODIFIED GRADIENT for highlighted state ---
     final Gradient cardGradient = userIsBehind
-        ? LinearGradient( // Highlight with primary color shades
+        ? LinearGradient(
             colors: [
               theme.colorScheme.primaryContainer.withOpacity(0.5),
               theme.colorScheme.primary.withOpacity(0.3)
@@ -30,19 +28,18 @@ class GroupListItem extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
-        : LinearGradient( // Default gradient
+        : LinearGradient(
             colors: [theme.colorScheme.surface, theme.colorScheme.surfaceVariant.withOpacity(0.3)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           );
 
-    // --- MODIFIED AVATAR COLOR for highlighted state ---
     final Color avatarBackgroundColor = userIsBehind
-        ? theme.colorScheme.primary.withOpacity(0.8) // Use primary color for highlight avatar
+        ? theme.colorScheme.primary.withOpacity(0.8)
         : (group.members.isNotEmpty ? group.members.first.profileColor : null) ?? theme.colorScheme.secondaryContainer;
 
     final Color avatarForegroundColor = userIsBehind
-         ? theme.colorScheme.onPrimary // Ensure good contrast on primary color
+         ? theme.colorScheme.onPrimary
          : theme.colorScheme.onSecondaryContainer;
 
 
@@ -105,14 +102,9 @@ class GroupListItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // --- MODIFIED TRAILING ICON ---
-                  // Always show chevron, maybe color it differently if behind?
                   Icon(
                     Icons.chevron_right,
-                    // Optionally color based on state:
                     color: userIsBehind ? theme.colorScheme.primary : Colors.grey.shade500,
-                    // Or just keep it standard grey:
-                    // color: Colors.grey.shade500,
                     size: 24,
                   ),
                 ],

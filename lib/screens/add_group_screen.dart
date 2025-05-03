@@ -1,10 +1,9 @@
-// lib/screens/add_group_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collection/collection.dart'; // Import for firstWhereOrNull
+import 'package:collection/collection.dart';
 
 import '../models/models.dart';
-import '../providers.dart'; // To access GroupDataService
+import '../providers.dart';
 
 class AddGroupScreen extends ConsumerStatefulWidget {
   const AddGroupScreen({super.key});
@@ -18,26 +17,18 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
   final _groupNameController = TextEditingController();
   final _newUserNameController = TextEditingController();
 
-  // Local state to keep track of selected members
   final Set<User> _selectedMembers = {};
-  // Local state to hold the list of all available users
   List<User> _availableUsers = [];
-  // State to control visibility of the 'add new user' input
   bool _showAddUserField = false;
 
   @override
   void initState() {
     super.initState();
-    // Load initial available users when the screen loads
     _availableUsers = ref.read(groupServiceProvider.notifier).getAllUsers();
 
-    // Automatically select the current user (if available)
-    // --- FIX: Declare currentUser as nullable (User?) ---
-    // --- FIX: Use firstWhereOrNull for safer lookup ---
     final User? currentUser = _availableUsers.firstWhereOrNull(
         (user) => user.name == 'Me' // Assuming 'Me' is the name in dummy_data
-        // No orElse needed with firstWhereOrNull, it returns null if not found
-        );
+    );
 
     // Only add if currentUser was actually found
     if (currentUser != null) {
@@ -58,6 +49,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
     if (newName.isNotEmpty) {
       // Check if user already exists (simple name check for now)
       bool exists = _availableUsers.any((user) => user.name.toLowerCase() == newName.toLowerCase());
+
       if (exists) {
          ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(content: Text("User '$newName' already exists."))
@@ -70,7 +62,6 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
 
       // Update local state: add to available users and select them
       setState(() {
-        // Ensure the list is updated before modifying selection
         _availableUsers = ref.read(groupServiceProvider.notifier).getAllUsers();
         _selectedMembers.add(newUser);
         _showAddUserField = false; // Hide input field
@@ -80,7 +71,6 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
          SnackBar(content: Text("User '${newUser.name}' added and selected."))
        );
     } else {
-       // Hide field if name is empty and button is pressed again
        setState(() {
          _showAddUserField = false;
        });
@@ -98,10 +88,8 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
         return;
       }
 
-      // Call the service to add the group
       ref.read(groupServiceProvider.notifier).addGroup(groupName, _selectedMembers.toList());
 
-      // Navigate back to the previous screen
       Navigator.of(context).pop();
        ScaffoldMessenger.of(context).showSnackBar(
          SnackBar(content: Text("Group '$groupName' created."))
@@ -112,10 +100,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Fetch the latest user list in build in case it changed via _addNewUser
-    // Note: This could be optimized if user list changes are rare during build
     _availableUsers = ref.watch(groupServiceProvider.notifier).getAllUsers();
-
 
     return Scaffold(
       appBar: AppBar(
@@ -157,15 +142,14 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                 ),
                 constraints: const BoxConstraints(maxHeight: 200), // Limit height
                 child: ListView.builder(
-                  shrinkWrap: true, // Important inside SingleChildScrollView
+                  shrinkWrap: true,
                   itemCount: _availableUsers.length,
                   itemBuilder: (context, index) {
                     final user = _availableUsers[index];
-                    // Check selection based on the current _selectedMembers set
                     final bool isSelected = _selectedMembers.any((selected) => selected.id == user.id);
 
                     return CheckboxListTile(
-                      secondary: CircleAvatar( // Show user avatar
+                      secondary: CircleAvatar(
                          backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                          foregroundColor: theme.colorScheme.onPrimaryContainer,
                          radius: 16,
@@ -176,15 +160,13 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                       onChanged: (bool? value) {
                         setState(() {
                           if (value == true) {
-                            // Add the actual user object from _availableUsers
                             _selectedMembers.add(user);
                           } else {
-                             // Remove based on ID match
                             _selectedMembers.removeWhere((selected) => selected.id == user.id);
                           }
                         });
                       },
-                      controlAffinity: ListTileControlAffinity.leading, // Checkbox on left
+                      controlAffinity: ListTileControlAffinity.leading,
                       dense: true,
                     );
                   },
@@ -193,7 +175,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
               const SizedBox(height: 16),
 
               // --- Add New User Section ---
-              if (!_showAddUserField) // Show button if field is hidden
+              if (!_showAddUserField)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Add New User'),
@@ -208,7 +190,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                   ),
                 ),
 
-              if (_showAddUserField) // Show input field and buttons if requested
+              if (_showAddUserField)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -225,7 +207,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                                border: OutlineInputBorder(),
                                isDense: true,
                              ),
-                             onFieldSubmitted: (_) => _addNewUser(), // Add on keyboard done
+                             onFieldSubmitted: (_) => _addNewUser(),
                            ),
                          ),
                          IconButton(
@@ -243,7 +225,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                            icon: const Icon(Icons.add_circle_outline),
                            color: theme.colorScheme.primary,
                            tooltip: 'Add User',
-                           onPressed: _addNewUser, // Call add user method
+                           onPressed: _addNewUser,
                          ),
                        ],
                      ),

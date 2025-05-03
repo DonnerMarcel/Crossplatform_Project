@@ -1,5 +1,4 @@
-// lib/utils/formatters.dart
-import 'package:intl/intl.dart'; // Import the intl package for formatting
+import 'package:intl/intl.dart';
 
 // --- Currency Formatter ---
 // Formats numbers into a currency string (e.g., €1,234.56)
@@ -19,12 +18,3 @@ String formatDate(DateTime date) {
   // Format the date and return the string
   return formatter.format(date);
 }
-
-// You could add more formatters here later, e.g.:
-// String formatTimestamp(DateTime timestamp) {
-//   return DateFormat('dd.MM.yyyy HH:mm').format(timestamp);
-// }
-//
-// String formatPercentage(double value) {
-//   return NumberFormat.percentPattern('de_DE').format(value); // e.g., value = 0.75 -> "75 %"
-// }

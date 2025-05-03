@@ -1,14 +1,11 @@
-// lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
-import 'package:collection/collection.dart'; // Import collection package for firstWhereOrNull
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collection/collection.dart';
 
-// Import providers and models
 import '../providers.dart';
 import '../models/models.dart';
 import '../utils/formatters.dart';
 
-// Import screen components
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
@@ -16,13 +13,11 @@ import 'add_expense_screen.dart';
 
 // Change StatefulWidget to ConsumerStatefulWidget
 class MainScreen extends ConsumerStatefulWidget {
-  // Accept groupId instead of the whole group object
   final String groupId;
 
   const MainScreen({super.key, required this.groupId});
 
   @override
-  // Change State to ConsumerState
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
@@ -41,10 +36,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
      });
   }
 
-  // --- Modified: Handle navigation and adding expense via Provider ---
   void _navigateToAddExpense({String? preselectedPayerId}) async {
-    // Use ref.read to safely get the current state within this async method
-    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
     final PaymentGroup? group = ref.read(groupServiceProvider.select(
        // Use firstWhereOrNull from package:collection
        (groups) => groups.firstWhereOrNull((g) => g.id == widget.groupId)
@@ -70,7 +62,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => AddExpenseScreen(
-          groupMembers: group.members, // Use members from fetched group
+          groupMembers: group.members,
           preselectedPayerId: preselectedPayerId,
           currencySymbol: currencyFormatter.currencySymbol,
         ),
@@ -79,7 +71,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     // If an expense was successfully created and returned
     if (result != null && mounted) {
-      // Call the provider's method to add the expense to the central state
       ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.groupId, result);
 
       // Show confirmation
@@ -94,10 +85,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // --- Use ref.watch to get the current group data ---
-    // --- FIX: Use firstWhereOrNull for safer nullable lookup ---
     final PaymentGroup? currentGroup = ref.watch(groupServiceProvider.select(
-      // Use firstWhereOrNull from package:collection
       (groups) => groups.firstWhereOrNull((g) => g.id == widget.groupId)
     ));
 
@@ -123,16 +111,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
        );
     }
 
-    // If group data is available, build the main UI:
-
-    // Build widget options dynamically using the non-null currentGroup
     final List<Widget> widgetOptions = <Widget>[
         DashboardScreen(
-          group: currentGroup, // Pass the non-null group
-          onAddExpenseRequested: _navigateToAddExpense, // Pass the callback
+          group: currentGroup,
+          onAddExpenseRequested: _navigateToAddExpense,
         ),
-        HistoryScreen(group: currentGroup), // Pass the non-null group
-        SettingsScreen(group: currentGroup), // Pass the non-null group
+        HistoryScreen(group: currentGroup),
+        SettingsScreen(group: currentGroup),
       ];
 
     return Scaffold(

@@ -1,10 +1,7 @@
-// lib/screens/group_list_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Import the provider we defined
 import '../providers.dart';
-// Still need dummy data for currentUser until auth is implemented
 import '../data/dummy_data.dart';
 import '../models/models.dart';
 import 'main_screen.dart'; // Import MainScreen for navigation
@@ -16,31 +13,25 @@ class GroupListScreen extends ConsumerStatefulWidget {
   const GroupListScreen({super.key});
 
   @override
-  // Change State to ConsumerState
   ConsumerState<GroupListScreen> createState() => _GroupListScreenState();
 }
 
 // Change State to ConsumerState
 class _GroupListScreenState extends ConsumerState<GroupListScreen> {
-  // Keep currentUser for now, ideally this would also come from a provider
-  // In a real app, get this via ref.watch(currentUserProvider) or similar
   final User currentUser = userMe;
 
   // --- Navigation Logic ---
   void _navigateToGroup(PaymentGroup group) {
-     // Navigate to MainScreen, passing the groupId
      Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MainScreen(groupId: group.id),
       ),
     );
-    // No .then() block needed - Riverpod handles state updates
   }
 
   // --- MODIFIED: Navigate to Add Group Screen ---
   void _addGroup() {
-    // Navigate to the AddGroupScreen
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddGroupScreen()),
@@ -66,8 +57,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // --- Use ref.watch to get the group list from the provider ---
-    // This automatically rebuilds the widget when the provider's state changes.
     final List<PaymentGroup> groupsToShow = ref.watch(groupServiceProvider);
 
     final theme = Theme.of(context);
@@ -75,12 +64,11 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Groups'),
-        // Use the _addGroup method for the action button
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
             tooltip: 'Add New Group',
-            onPressed: _addGroup, // Navigate to AddGroupScreen
+            onPressed: _addGroup,
           ),
         ],
       ),
@@ -119,13 +107,11 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       itemCount: groupsToShow.length,
                       itemBuilder: (context, index) {
-                          // Get group data directly from the watched list
                           final group = groupsToShow[index];
-                          // Use the styled GroupListItem
+
                           return GroupListItem(
                             group: group,
-                            currentUser: currentUser, // Pass currentUser
-                            // Pass the navigation callback with the specific group object
+                            currentUser: currentUser,
                             onTap: () => _navigateToGroup(group),
                           );
                       },
@@ -134,7 +120,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           ],
       ),
        floatingActionButton: FloatingActionButton(
-        onPressed: _addGroup, // FAB also navigates to AddGroupScreen
+        onPressed: _addGroup,
         tooltip: 'Add Group',
         child: const Icon(Icons.add),
       ),

@@ -1,5 +1,3 @@
-
-// lib/widgets/dashboard/spinning_wheel_painter.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
@@ -21,9 +19,7 @@ class SpinningWheelPainter extends CustomPainter {
 
   // Helper to determine text color based on background luminance
   Color getTextColor(Color backgroundColor) {
-    // Calculate luminance (0.0 black to 1.0 white)
     double luminance = backgroundColor.computeLuminance();
-    // Use white text on dark backgrounds, black text on light backgrounds
     return luminance > 0.4 ? Colors.black87 : Colors.white;
   }
 
@@ -31,18 +27,16 @@ class SpinningWheelPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width / 2, size.height / 2) * 0.95; // Use slightly more radius
+    final radius = min(size.width / 2, size.height / 2) * 0.95;
     final segmentPaint = Paint();
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
 
-
-    double startAngle = -pi / 2; // Start from top
+    double startAngle = -pi / 2;
 
     if (totalWeight <= 0 || segments.isEmpty) {
-      // Draw placeholder if no segments/weight
       segmentPaint.color = Colors.grey[200]!;
       segmentPaint.style = PaintingStyle.fill;
       canvas.drawCircle(center, radius, segmentPaint);
@@ -66,16 +60,16 @@ class SpinningWheelPainter extends CustomPainter {
       segmentPaint.color = segment.color;
       segmentPaint.style = PaintingStyle.fill;
 
-      // --- Optional: Add Gradient for depth ---
+      // --- Add Gradient for depth ---
        Rect rect = Rect.fromCircle(center: center, radius: radius);
        final Gradient gradient = RadialGradient(
-         center: Alignment.center, // Center the gradient
-         radius: 0.8, // Adjust radius effect
+         center: Alignment.center,
+         radius: 0.8,
          colors: [
-           segment.color.withOpacity(0.85), // Lighter inner color
-           segment.color, // Original outer color
+           segment.color.withOpacity(0.85),
+           segment.color,
          ],
-         stops: const [0.0, 1.0], // Gradient stops
+         stops: const [0.0, 1.0],
        );
        segmentPaint.shader = gradient.createShader(rect);
 
@@ -84,24 +78,24 @@ class SpinningWheelPainter extends CustomPainter {
         rect,
         startAngle,
         sweepAngle,
-        true, // Use center
+        true,
         segmentPaint,
       );
-       segmentPaint.shader = null; // Clear shader for next elements
+       segmentPaint.shader = null;
 
       // --- Draw Text (User Initials) ---
-      final textColor = getTextColor(segment.color); // Get contrast color
+      final textColor = getTextColor(segment.color);
       final textStyle = TextStyle(
         color: textColor,
-        fontSize: radius * 0.12, // Slightly larger text
+        fontSize: radius * 0.12,
         fontWeight: FontWeight.bold,
-        shadows: const [ // Add subtle shadow for better readability
+        shadows: const [
            Shadow(color: Colors.black26, blurRadius: 2, offset: Offset(1,1))
         ]
       );
 
       final textAngle = startAngle + sweepAngle / 2;
-      final textRadius = radius * 0.7; // Position text slightly more inwards
+      final textRadius = radius * 0.7;
       final textX = center.dx + textRadius * cos(textAngle);
       final textY = center.dy + textRadius * sin(textAngle);
       final textOffset = Offset(textX, textY);
@@ -111,18 +105,18 @@ class SpinningWheelPainter extends CustomPainter {
 
       canvas.save();
       canvas.translate(textOffset.dx, textOffset.dy);
-      canvas.rotate(textAngle + pi / 2); // Rotate text to be upright
+      canvas.rotate(textAngle + pi / 2);
       textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
       canvas.restore();
 
-      startAngle = endAngle; // Move to next segment
+      startAngle = endAngle;
     }
 
     // --- Draw Separator Lines ---
-    startAngle = -pi / 2; // Reset start angle for lines
+    startAngle = -pi / 2;
     final linePaint = Paint()
-        ..color = Colors.white.withOpacity(0.6) // Brighter lines
-        ..strokeWidth = 1.0 // Thinner lines
+        ..color = Colors.white.withOpacity(0.6)
+        ..strokeWidth = 1.0
         ..style = PaintingStyle.stroke;
 
     for (int i = 0; i < segments.length; i++) {
@@ -145,7 +139,6 @@ class SpinningWheelPainter extends CustomPainter {
        ..style = PaintingStyle.stroke
        ..strokeWidth = 3; // Slightly thicker border
      canvas.drawCircle(center, radius, borderPaint);
-
   }
 
   @override
