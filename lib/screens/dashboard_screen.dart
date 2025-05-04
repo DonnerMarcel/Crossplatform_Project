@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Removed pie_chart import as it's no longer used here
+// import 'package:pie_chart/pie_chart.dart';
 
 import '../models/models.dart';
 import '../providers.dart';
 import '../utils/formatters.dart';
+// Ensure UserBalanceCard is imported correctly (simplified version)
 import '../widgets/dashboard/user_balance_card.dart';
 import '../widgets/history/expense_card.dart';
 import '../widgets/dashboard/spinning_wheel_dialog.dart';
-import 'add_expense_screen.dart';
 
-// Define the typedef here
+// Define the typedef if not already defined globally or in main_screen.dart
 typedef AddExpenseCallback = void Function({String? preselectedPayerId});
 
-// Change to ConsumerStatefulWidget
 class DashboardScreen extends ConsumerStatefulWidget {
   final PaymentGroup group;
   final AddExpenseCallback onAddExpenseRequested;
@@ -28,11 +29,10 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-// Change to ConsumerState
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-
+  // --- Spin Result Dialog Logic (Unchanged) ---
   void _showResultDialog(User selectedUser) {
-     showDialog<bool>(
+    showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
@@ -40,214 +40,173 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         content: Row(
           children: [
             CircleAvatar(
-               backgroundColor: selectedUser.profileColor ?? Colors.grey[300],
-               child: Text(selectedUser.initials, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              backgroundColor: selectedUser.profileColor ?? Colors.grey[300],
+              foregroundColor:
+                  ThemeData.estimateBrightnessForColor(selectedUser.profileColor ?? Colors.grey[300]!) == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+              child: Text(selectedUser.initials,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 15),
-            Expanded(child: Text('${selectedUser.name} has been selected to pay!')),
+            Expanded(
+                child: Text('${selectedUser.name} has been selected to pay!')),
           ],
         ),
-         actions: [
-           TextButton(
-             onPressed: () => Navigator.pop(dialogContext, false),
-             child: const Text('Abbruch', style: TextStyle(color: Colors.grey)),
-           ),
-           TextButton(
-             onPressed: () => Navigator.pop(dialogContext, true),
-             child: const Text('OK & Enter Details'),
-           ),
-         ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('OK & Enter Details'),
+          ),
+        ],
       ),
     ).then((shouldNavigate) {
-       if (shouldNavigate == true && mounted) {
-            widget.onAddExpenseRequested(preselectedPayerId: selectedUser.id);
-       }
+      if (shouldNavigate == true && mounted) {
+        widget.onAddExpenseRequested(preselectedPayerId: selectedUser.id);
+      }
     });
   }
 
-  // Method to open the spinning wheel dialog
+  // --- Open Spinning Wheel Dialog Logic (Unchanged) ---
   void _openSpinningWheelDialog() {
-     widget.group.userTotals;
-
-     if (widget.group.members.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No members in group to spin.'))
-        );
-        return;
-     }
-
-     showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => SpinningWheelDialog(
-            users: widget.group.members,
-            totalGroupExpenses: widget.group.totalGroupExpenses,
-            onSpinComplete: _showResultDialog,
-        ),
-     );
-  }
-
-  void _navigateToAddExpense({String? preselectedPayerId}) async {
-    final PaymentGroup? group = ref.read(groupServiceProvider.select(
-            (groups) => groups.firstWhereOrNull((g) => g.id == widget.group.id)
-    ));
-
-    // Check if group data is available
-    if (group == null) {
+    widget.group.userTotals;
+    if (widget.group.members.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Group data not available.'))
-      );
+          const SnackBar(content: Text('No members in group to spin.')));
       return;
     }
-
-    // Check if there are members to pay
-    if (group.members.isEmpty && preselectedPayerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot add expense: No members in the group.'))
-      );
-      return;
-    }
-
-    // Navigate to AddExpenseScreen
-    final result = await Navigator.push<Expense>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddExpenseScreen(
-          groupMembers: group.members,
-          preselectedPayerId: preselectedPayerId,
-          currencySymbol: currencyFormatter.currencySymbol,
-        ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => SpinningWheelDialog(
+        users: widget.group.members,
+        totalGroupExpenses: widget.group.totalGroupExpenses,
+        onSpinComplete: _showResultDialog,
       ),
     );
-
-    // If an expense was successfully created and returned
-    if (result != null && mounted) {
-      ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.group.id, result);
-
-      // Show confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Expense "${result.description}" saved.'),
-            duration: const Duration(seconds: 2),
-          )
-      );
-    }
   }
 
-  // Getter for total group expenses
+  // --- Getter for total group expenses (Unchanged) ---
   double get _totalGroupExpenses => widget.group.totalGroupExpenses;
+
+  // --- REMOVED Pie Chart Helper Methods ---
+  // Map<String, double> _createPieDataMap() { ... } // REMOVED
+  // List<Color> _createPieColorList(ThemeData theme) { ... } // REMOVED
+
 
   @override
   Widget build(BuildContext context) {
+    // Ensure latest totals are calculated
     widget.group.userTotals;
 
     final currentExpenses = List<Expense>.from(widget.group.expenses);
     final sortedExpenses = currentExpenses.sorted((a, b) => b.date.compareTo(a.date));
     final Expense? latestExpense = sortedExpenses.firstOrNull;
+    final theme = Theme.of(context);
+
+    // --- REMOVED Pie Chart Variable Declarations ---
+    // final Map<String, double> pieDataMap = _createPieDataMap();
+    // final List<Color> pieColorList = _createPieColorList(theme);
+    // final bool showChart = pieDataMap.isNotEmpty && _totalGroupExpenses > 0;
 
     return ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // --- Total Overview Card ---
+          // --- Total Overview Card (Unchanged) ---
           Card(
-            elevation: 2,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Total Group Expenses',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.black54),
-                  ),
+                  Text('Total Group Expenses', style: theme.textTheme.titleMedium?.copyWith(color: Colors.black54)),
                   const SizedBox(height: 4),
-                  Text(
-                    currencyFormatter.format(_totalGroupExpenses),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
+                  Text(currencyFormatter.format(_totalGroupExpenses), style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
           ),
-           const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-          // --- User Balances Section ---
-           Text(
-               'User Balances (Total Paid in Group)',
-               style: Theme.of(context).textTheme.titleLarge
-           ),
-           const SizedBox(height: 8),
-           if (widget.group.members.isNotEmpty)
-                ...widget.group.members.map((user) => UserBalanceCard(
-                      user: user
-                    )).toList()
-           else
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text("No members in this group."),
+          // --- REMOVED Payment Distribution Pie Chart Section ---
+          // Text('Payment Distribution', style: theme.textTheme.titleLarge), // REMOVED
+          // const SizedBox(height: 12), // REMOVED
+          // Card( ... PieChart ... ), // REMOVED
+          // const SizedBox(height: 20), // REMOVED
+
+
+          // --- User Balances Section (Uses simplified Card) ---
+          Text('User Balances (Total Paid)', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (widget.group.members.isNotEmpty)
+             // Cards no longer need totalGroupExpenses passed
+             ...widget.group.members.map((user) => UserBalanceCard(user: user)).toList()
+          else
+             const Padding(
+               padding: EdgeInsets.symmetric(vertical: 8.0),
+               child: Text("No members in this group."),
+             ),
+
+          const SizedBox(height: 28),
+
+          // --- Action Buttons Row (Unchanged from your last version) ---
+          Row(
+             mainAxisAlignment: MainAxisAlignment.spaceAround,
+             children: [
+                Expanded(
+                  flex: 5,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.casino_outlined),
+                    label: const Text('Spin Wheel!'),
+                    onPressed: _openSpinningWheelDialog,
+                    style: ElevatedButton.styleFrom( /* ... style ... */
+                         foregroundColor: theme.colorScheme.onPrimary,
+                         backgroundColor: theme.colorScheme.primary,
+                         padding: const EdgeInsets.symmetric(vertical: 12),
+                         textStyle: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                     ),
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                   flex: 4,
+                   child: OutlinedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Manual'),
+                    onPressed: () => widget.onAddExpenseRequested(),
+                    style: OutlinedButton.styleFrom( /* ... style ... */
+                         foregroundColor: theme.colorScheme.primary,
+                         side: BorderSide(color: theme.colorScheme.primary),
+                         padding: const EdgeInsets.symmetric(vertical: 12),
+                          textStyle: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                     ),
+                   ),
+                 ),
+             ],
+          ),
 
-            const SizedBox(height: 24),
+          const SizedBox(height: 28),
 
-            // --- Button to open the Spin Dialog ---
-            Center(
-              child:
-                Row(
-                  children: [
-                    Expanded(
-                        child:
-                        ElevatedButton.icon(
-                          label: const Text('Spin Wheel!'),
-                          onPressed: _openSpinningWheelDialog,
-                          style: ElevatedButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
-                              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                          ),
-                        ),
-                    ),
-
-                    SizedBox(width: 8),
-
-                    Expanded(
-                      child:
-                      ElevatedButton.icon(
-                          label: const Text('Add Expense'),
-                          onPressed: _navigateToAddExpense,
-                          style: ElevatedButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
-                              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                          )
-                      )
-                    ),
-                  ]
-                )
-            ),
-
-           const SizedBox(height: 24),
-
-          // --- Last Expense Section ---
-           Text(
-               'Last Expense',
-               style: Theme.of(context).textTheme.titleLarge
-           ),
-           const SizedBox(height: 8),
-            if (latestExpense != null)
-               ExpenseCard(
-                   expense: latestExpense,
-                   payer: widget.group.getUserById(latestExpense.payerId),
-               )
-             else
-               const Padding(
-                 padding: EdgeInsets.symmetric(vertical: 8.0),
-                 child: Text('No expenses recorded yet for this group.'),
-               ),
-           const SizedBox(height: 16),
+          // --- Last Expense Section (Unchanged) ---
+          Text('Last Expense', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (latestExpense != null)
+             ExpenseCard(
+                 expense: latestExpense,
+                 payer: widget.group.getUserById(latestExpense.payerId),
+             )
+          else
+             const Padding(
+               padding: EdgeInsets.symmetric(vertical: 8.0),
+               child: Text('No expenses recorded yet for this group.'),
+             ),
+          const SizedBox(height: 16),
         ],
       );
   }

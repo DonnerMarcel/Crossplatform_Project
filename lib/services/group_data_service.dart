@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart'; // Import material for Colors
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Assuming correct path
 import '../models/models.dart';
 import '../data/dummy_data.dart'; // Still needed for initial users
 
@@ -37,7 +38,7 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
       userKlaus,
       userJohn,
       userAnna,
-      userSara,
+      userSara, // Assuming userSara is defined in dummy_data
     ]);
     // Remove duplicates just in case (based on ID)
     final uniqueUserIds = <String>{};
@@ -75,30 +76,33 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
   }
 
 
-  // --- Group Data Access Methods --- (getGroupById remains the same)
+  // --- Group Data Access Methods ---
 
   PaymentGroup? getGroupById(String groupId) {
     try {
+      // Use state directly, as it's the list of groups
       return state.firstWhere((group) => group.id == groupId);
     } catch (e) {
-      print("Error in getGroupById: Group $groupId not found.");
+      print("Error in getGroupById: Group $groupId not found in current state.");
       return null;
     }
   }
 
-  // --- Group Data Modification Methods --- (updateGroupName, addExpenseToGroup remain the same)
+  // --- Group Data Modification Methods ---
 
   void updateGroupName(String groupId, String newName) {
     state = [
       for (final group in state)
         if (group.id == groupId)
+          // Create a new PaymentGroup object with the updated name
           PaymentGroup(
               id: group.id,
-              name: newName,
-              members: group.members,
-              expenses: group.expenses)
+              name: newName.trim(), // Ensure name is trimmed
+              members: group.members, // Keep existing members
+              expenses: group.expenses // Keep existing expenses
+          )
         else
-          group,
+          group, // Keep other groups unchanged
     ];
     print("GroupDataService: Group '$groupId' name updated to '$newName'. State updated.");
     // TODO: Persist changes
@@ -106,25 +110,26 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
 
   void addExpenseToGroup(String groupId, Expense newExpense) {
      state = [
-      for (final group in state)
-        if (group.id == groupId)
-          PaymentGroup(
-            id: group.id,
-            name: group.name,
-            members: group.members,
-            expenses: List.from(group.expenses)
-              ..add(newExpense)
-              ..sort((a, b) => b.date.compareTo(a.date)),
-          )
-        else
-          group,
+       for (final group in state)
+         if (group.id == groupId)
+           PaymentGroup(
+             id: group.id,
+             name: group.name,
+             members: group.members,
+             // Create new list with added expense and sort it
+             expenses: List.from(group.expenses)
+               ..add(newExpense)
+               // Ensure sorting happens correctly within the new list creation
+               ..sort((a, b) => b.date.compareTo(a.date)),
+           )
+         else
+           group,
      ];
      print("GroupDataService: Expense '${newExpense.description}' added to group '$groupId'. State updated.");
      // TODO: Persist changes
   }
 
   // --- ADD GROUP METHOD ---
-  // Adds a new group to the state list.
   void addGroup(String name, List<User> members) {
     if (name.trim().isEmpty) {
       print("GroupDataService: Cannot add group with empty name.");
@@ -132,71 +137,35 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
     }
     if (members.isEmpty) {
        print("GroupDataService: Cannot add group with no members.");
-       // Or decide if groups with 0 members initially are allowed
        return;
     }
-    // Generate a unique ID for the group
     final newId = 'group-${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(999)}';
     final newGroup = PaymentGroup(
       id: newId,
       name: name.trim(),
-      members: List.from(members), // Use a copy of the members list
-      expenses: [], // Start with empty expenses
+      members: List.from(members),
+      expenses: [],
     );
-    // Add the new group to the existing state list
-    state = [...state, newGroup]; // Creates a new list
+    // Create a new list including the new group
+    state = [...state, newGroup];
     print("GroupDataService: Group '$name' added with ID '$newId'. State updated.");
     // TODO: Persist group list changes
   }
 
-  // --- Delete Group Method --- (Uncommented and uses state)
+  // --- Delete Group Method --- (THIS IS ALREADY CORRECT)
   void deleteGroup(String groupId) {
     final initialLength = state.length;
     // Filter out the group to be deleted, creating a new list
     state = state.where((group) => group.id != groupId).toList();
     if (state.length < initialLength) {
-       print("GroupDataService: Group '$groupId' deleted. State updated.");
-        // TODO: Persist changes
+        print("GroupDataService: Group '$groupId' deleted. State updated.");
+         // TODO: Persist changes
     } else {
-       print("GroupDataService: Group '$groupId' not found for deletion.");
+        print("GroupDataService: Group '$groupId' not found for deletion.");
     }
   }
 
-  // --- Placeholder for Member Management ---
-  // void addMemberToGroup(String groupId, User newMember) {
-  //    state = [
-  //     for (final group in state)
-  //       if (group.id == groupId)
-  //          PaymentGroup(
-  //             id: group.id,
-  //             name: group.name,
-  //             // Add member if not already present
-  //             members: group.members.contains(newMember) ? group.members : [...group.members, newMember],
-  //             expenses: group.expenses
-  //           )
-  //       else
-  //         group,
-  //    ];
-  //    print("GroupDataService: Member '${newMember.name}' added to group '$groupId'. State updated.");
-  //    // TODO: Persist changes
-  // }
-
-  // void removeMemberFromGroup(String groupId, String userId) {
-  //    state = [
-  //     for (final group in state)
-  //       if (group.id == groupId)
-  //          PaymentGroup(
-  //             id: group.id,
-  //             name: group.name,
-  //             // Filter out the member
-  //             members: group.members.where((member) => member.id != userId).toList(),
-  //             expenses: group.expenses
-  //             // TODO: Consider how removing a member affects expense splitting/balances
-  //           )
-  //       else
-  //         group,
-  //    ];
-  //    print("GroupDataService: Member '$userId' removed from group '$groupId'. State updated.");
-  //    // TODO: Persist changes
-  // }
+  // --- Placeholder for Member Management --- (Keep commented out)
+  // void addMemberToGroup(String groupId, User newMember) { ... }
+  // void removeMemberFromGroup(String groupId, String userId) { ... }
 }
