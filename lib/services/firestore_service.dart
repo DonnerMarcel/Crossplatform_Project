@@ -8,15 +8,15 @@ class FirestoreService {
   // ================
 
   /// Add a new user to the 'users' collection
-  Future<void> addUser(String name) async {
-    await _db.collection('users').add({
+  Future<void> addUser({required String userId, required String name}) async {
+    await _db.collection('users').doc(userId).set({
       'name': name,
-      'createdAt' : FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
   /// Update an existing user in the 'users' collection
-  Future<void> updateUser(String userId, String newName) async {
+  Future<void> updateUser({required String userId, required String newName}) async {
     await _db.collection('users').doc(userId).update({
       'name': newName,
     });

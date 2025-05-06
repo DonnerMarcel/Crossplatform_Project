@@ -1,18 +1,19 @@
 // lib/screens/login_screen.dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_2/screens/register_screen.dart';
-
+import '../providers.dart';
 import 'group_list_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -26,12 +27,17 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credentials = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      Navigator.push(
+      final uid = credentials.user?.uid;
+      if (uid != null) {
+        ref.read(userIdProvider.notifier).state = uid;
+      }
+
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const GroupListScreen()),
       );

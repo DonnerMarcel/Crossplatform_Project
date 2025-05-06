@@ -8,3 +8,5 @@ final groupServiceProvider = StateNotifierProvider<GroupDataService, List<Paymen
   // It creates and returns your state management service.
   return GroupDataService();
 });
+
+final userIdProvider = StateProvider<String?>((ref) => null);

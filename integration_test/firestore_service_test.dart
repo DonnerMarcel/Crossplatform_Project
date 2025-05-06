@@ -18,7 +18,7 @@ void main() {
 
   testWidgets('Add and fetch user from real Firestore', (WidgetTester tester) async {
     // Add a user
-    await firestore.addUser('TEST_USER');
+    await firestore.addUser(userId: 'aaa', name: 'TEST_USER');
 
     // Fetch all users and validate if the user is added
     final users = await firestore.getAllUsers();
@@ -31,7 +31,7 @@ void main() {
 
   testWidgets('Update user name in Firestore', (WidgetTester tester) async {
     // Add a user first
-    await firestore.addUser('TEST_USER');
+    await firestore.addUser(userId: 'aaa', name: 'TEST_USER');
 
     // Get the user to update
     final users = await firestore.getAllUsers();
@@ -39,7 +39,7 @@ void main() {
     final userId = user['id'];
 
     // Update the user's name
-    await firestore.updateUser(userId, 'UPDATED_USER');
+    await firestore.updateUser(userId: userId, newName: 'UPDATED_USER');
 
     // Fetch the updated user and check the name
     final updatedUser = await firestore.getUserByID(userId);
@@ -50,7 +50,7 @@ void main() {
 
   testWidgets('Delete user from Firestore', (WidgetTester tester) async {
     // Add a user first
-    await firestore.addUser('TEST_USER');
+    await firestore.addUser(userId: 'aaa', name: 'TEST_USER');
 
     // Get the user to delete
     final users = await firestore.getAllUsers();
