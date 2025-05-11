@@ -3,6 +3,7 @@ import 'package:flutter_application_2/screens/login_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/group_list_screen.dart';
 
@@ -64,7 +65,25 @@ class FairFlipApp extends StatelessWidget {
            foregroundColor: colorScheme.onPrimary,
         ),
       ),
-      home: const LoginScreen(),
+      home: FutureBuilder<String?>(
+        future: _getStoredUid(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (snapshot.hasData && snapshot.data != null) {
+            return const GroupListScreen();
+          } else {
+            return const LoginScreen();
+          }
+        },
+      ),
     );
+  }
+
+  Future<String?> _getStoredUid() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId');
   }
 }

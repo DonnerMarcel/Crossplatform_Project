@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_2/screens/register_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'group_list_screen.dart';
 
@@ -26,12 +27,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      var credentials = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      Navigator.push(
+      // Save UserID locally
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', credentials.user!.uid);
+
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const GroupListScreen()),
       );
