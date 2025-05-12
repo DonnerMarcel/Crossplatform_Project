@@ -60,89 +60,85 @@ class _LoginScreenState extends State<LoginScreen> {
         Form(
           key: _formKey,
           child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/icons/money.png', height: 100),
-                    const SizedBox(height: 64),
-                    Text('Login', style: theme.textTheme.headlineMedium),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: _buildInputDecoration(
-                        context: context,
-                        labelText: 'Email',
-                        hintText: 'your@mail.com',
-                        prefixIconData: Icons.email_outlined,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) => value == null || value.isEmpty ? 'Please enter your email.' : null,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 128),
+                  Image.asset('assets/icons/money.png', height: 100),
+                  const SizedBox(height: 64),
+                  Text('Login', style: theme.textTheme.headlineMedium),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: _buildInputDecoration(
+                      context: context,
+                      labelText: 'Email',
+                      hintText: 'your@mail.com',
+                      prefixIconData: Icons.email_outlined,
                     ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: _buildInputDecoration(
-                        context: context,
-                        labelText: 'Password',
-                        hintText: 'A safe password',
-                        prefixIconData: Icons.lock_outline,
-                      ),
-                      obscureText: true,
-                      validator: (value) => value == null || value.isEmpty ? 'Please enter your password.' : null,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) => value == null || value.isEmpty ? 'Please enter your email.' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: _buildInputDecoration(
+                      context: context,
+                      labelText: 'Password',
+                      hintText: 'A safe password',
+                      prefixIconData: Icons.lock_outline,
                     ),
-                    if (_error != null)
-                      Column(
-                          children: [
-                            const SizedBox(height: 8),
-                            Text(
-                              _error!,
-                              style: TextStyle(color: Theme.of(context).colorScheme.error),
-                              textAlign: TextAlign.left,
-                            ),
-                          ]
-                      ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                          if (_formKey.currentState!.validate()) {
-                            _login();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.onPrimary,
-                          backgroundColor: theme.colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    obscureText: true,
+                    validator: (value) => value == null || value.isEmpty ? 'Please enter your password.' : null,
+                  ),
+                  if (_error != null)
+                    Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            _error!,
+                            style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            textAlign: TextAlign.left,
                           ),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text('Login'),
-                      ),
+                        ]
                     ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                        );
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                        if (_formKey.currentState!.validate()) {
+                          _login();
+                        }
                       },
-                      child: const Text("Not registered yet? Create an account!"),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        backgroundColor: theme.colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Login'),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                      );
+                    },
+                    child: const Text("Not registered yet? Create an account!"),
+                  ),
+                ],
               ),
             ),
           ),
