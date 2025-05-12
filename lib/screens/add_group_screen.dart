@@ -273,7 +273,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                                 radius: 12, // Smaller avatar
                                 backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                                 foregroundColor: theme.colorScheme.onPrimaryContainer,
-                                child: Text(user.initials, style: const TextStyle(fontSize: 10)), // Smaller font
+                                child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 10)), // Smaller font
                               ),
                               onDeleted: () => _removeSelectedUser(user),
                               deleteIconColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
@@ -352,7 +352,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                                           backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                                           foregroundColor: theme.colorScheme.onPrimaryContainer,
                                           radius: 16,
-                                          child: Text(user.initials, style: const TextStyle(fontSize: 12)),
+                                          child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 12)),
                                        ),
                                        title: Text(user.name),
                                        // Add button instead of checkbox

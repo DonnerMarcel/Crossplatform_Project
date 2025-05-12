@@ -16,8 +16,8 @@ class DataDetailsScreen extends ConsumerWidget { // Can be ConsumerWidget if sta
 
   // --- Moved Pie Chart Helper Logic ---
   Map<String, double> _createPieDataMap() {
-    final double totalGroupExpenses = group.totalGroupExpenses; // Use passed group
-    group.userTotals; // Ensure totals are calculated on the group object
+    final double totalGroupExpenses = 0.0;//group.totalGroupExpenses; // Use passed group
+    //group.userTotals; // Ensure totals are calculated on the group object
     Map<String, double> dataMap = {};
     if (totalGroupExpenses <= 0) {
       for (var user in group.members) { dataMap[user.name] = 0.01; }
@@ -59,7 +59,7 @@ class DataDetailsScreen extends ConsumerWidget { // Can be ConsumerWidget if sta
     final theme = Theme.of(context);
     final Map<String, double> pieDataMap = _createPieDataMap();
     final List<Color> pieColorList = _createPieColorList(theme);
-    final bool showChart = pieDataMap.isNotEmpty && group.totalGroupExpenses > 0;
+    final bool showChart = pieDataMap.isNotEmpty; //&& group.totalGroupExpenses > 0;
 
     // Maybe use ListView if adding more details later
     return SingleChildScrollView(

@@ -45,7 +45,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ThemeData.estimateBrightnessForColor(selectedUser.profileColor ?? Colors.grey[300]!) == Brightness.dark
                       ? Colors.white
                       : Colors.black,
-              child: Text(selectedUser.initials,
+              child: Text(selectedUser.name.substring(0, 1),
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 15),
@@ -73,7 +73,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // --- Open Spinning Wheel Dialog Logic (Unchanged) ---
   void _openSpinningWheelDialog() {
-    widget.group.userTotals;
+    //widget.group.userTotals;
     if (widget.group.members.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No members in group to spin.')));
@@ -84,14 +84,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       barrierDismissible: false,
       builder: (context) => SpinningWheelDialog(
         users: widget.group.members,
-        totalGroupExpenses: widget.group.totalGroupExpenses,
+        totalGroupExpenses: 0.0, //widget.group.totalGroupExpenses,
         onSpinComplete: _showResultDialog,
       ),
     );
   }
 
   // --- Getter for total group expenses (Unchanged) ---
-  double get _totalGroupExpenses => widget.group.totalGroupExpenses;
+  double get _totalGroupExpenses => 0.0;//widget.group.totalGroupExpenses;
 
   // --- REMOVED Pie Chart Helper Methods ---
   // Map<String, double> _createPieDataMap() { ... } // REMOVED
@@ -101,7 +101,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     // Ensure latest totals are calculated
-    widget.group.userTotals;
+    //widget.group.userTotals;
 
     final currentExpenses = List<Expense>.from(widget.group.expenses);
     final sortedExpenses = currentExpenses.sorted((a, b) => b.date.compareTo(a.date));
@@ -199,8 +199,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (latestExpense != null)
              ExpenseCard(
                  expense: latestExpense,
-                 payer: widget.group.getUserById(latestExpense.payerId),
-             )
+                 payer: widget.group.members.firstWhere(
+                    (user) => user.id == latestExpense.payerId,
+                      orElse: () => User(
+                      id: 'unknown',
+                      name: 'Unknown',
+                      profileColor: Colors.grey,
+                    ),
+                  )
+
+    )
           else
              const Padding(
                padding: EdgeInsets.symmetric(vertical: 8.0),

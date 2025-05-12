@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/services/firestore_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Assuming these imports are correct for your project structure
 import '../providers.dart';
-import '../data/dummy_data.dart'; // Make sure userMe is defined here or fetched via provider
+import '../data/dummy_data.dart';
 import '../models/models.dart';
 import 'main_screen.dart'; // Import MainScreen for navigation
 import 'add_group_screen.dart'; // Import the new screen
@@ -19,8 +21,29 @@ class GroupListScreen extends ConsumerStatefulWidget {
 
 // Change State to ConsumerState
 class _GroupListScreenState extends ConsumerState<GroupListScreen> {
-  // Assuming userMe is defined globally or fetched via provider
-  final User currentUser = userMe;
+  final FirestoreService firestoreService = FirestoreService();
+  User? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final uid = await _getStoredUid();
+    if (uid != null) {
+      final doc = await firestoreService.getUserByID(uid);
+      setState(() {
+        currentUser = User(id: doc['id'], name: doc['name']);
+      });
+    }
+  }
+
+  Future<String?> _getStoredUid() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId');
+  }
 
   // --- Navigation Logic ---
   void _navigateToGroup(PaymentGroup group) {
@@ -107,7 +130,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
                         return GroupListItem(
                           group: group,
-                          currentUser: currentUser,
+                          currentUser: currentUser!,
                           onTap: () => _navigateToGroup(group),
                         );
                       },
@@ -150,7 +173,3 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     );
   }
 }
-
-// Ensure userMe is defined (e.g., from dummy_data.dart or via provider)
-// Example if using dummy data directly:
-// final User userMe = User(id: '1', name: 'Me', profileColor: Colors.deepPurple);

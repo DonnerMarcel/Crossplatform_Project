@@ -254,7 +254,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           radius: 12, // Small avatar
                           backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                           foregroundColor: theme.colorScheme.onPrimaryContainer,
-                          child: Text(user.initials, style: const TextStyle(fontSize: 10)),
+                          child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 10)),
                         ),
                         const SizedBox(width: 8),
                         Text(user.name),

@@ -15,7 +15,7 @@ class GroupListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool userIsBehind = group.isUserBehind(currentUser.id);
+    final bool userIsBehind = false;
     final theme = Theme.of(context);
 
     // Define gradients based on userIsBehind status
@@ -75,7 +75,7 @@ class GroupListItem extends StatelessWidget {
                      radius: 22,
                      child: Text(
                           group.members.isNotEmpty
-                              ? group.members.first.initials
+                              ? group.members.first.name.substring(0,1)
                               : group.name.isNotEmpty ? group.name.substring(0,1).toUpperCase() : '?',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                       ),

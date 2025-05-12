@@ -1,171 +1,143 @@
-// lib/services/group_data_service.dart
 import 'dart:math';
-import 'package:flutter/material.dart'; // Import material for Colors
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Assuming correct path
 import '../models/models.dart';
-import '../data/dummy_data.dart'; // Still needed for initial users
+import 'firestore_service.dart';
 
-// Make the service a StateNotifier, holding the list of groups as its state.
 class GroupDataService extends StateNotifier<List<PaymentGroup>> {
-  // --- Add state for all known users ---
-  // This list will hold all users, including newly created ones.
-  // In a real app, this would also be loaded/saved.
+  final FirestoreService firestoreService = FirestoreService();
   final List<User> _allUsers = [];
 
-  // Constructor: Initialize the state by loading initial data.
-  GroupDataService() : super(_loadInitialGroups()) {
-    // Also initialize the list of all known users
-    _loadInitialUsers();
+  GroupDataService() : super([]) {
+    _initializeData();
   }
 
-  // Static private method to load initial groups
-  static List<PaymentGroup> _loadInitialGroups() {
-    final initialGroups = List<PaymentGroup>.from(dummyGroups);
-    print("GroupDataService: Initial groups loaded.");
-    // TODO: Implement loading groups from persistent storage later
-    return initialGroups;
+  Future<void> _initializeData() async {
+    await _loadInitialUsers();
+    state = await _loadInitialGroups();
   }
 
-  // Private method to load initial users from dummy data
-  void _loadInitialUsers() {
-    // Add users defined in dummy_data.dart initially
-    // Ensure no duplicates if currentUser is also in the list explicitly
-    _allUsers.addAll([
-      userMe,
-      userMax,
-      userKlaus,
-      userJohn,
-      userAnna,
-      userSara, // Assuming userSara is defined in dummy_data
-    ]);
-    // Remove duplicates just in case (based on ID)
-    final uniqueUserIds = <String>{};
-    _allUsers.retainWhere((user) => uniqueUserIds.add(user.id));
-    print("GroupDataService: Initial users loaded. Count: ${_allUsers.length}");
-    // TODO: Implement loading users from persistent storage later
+  static Future<List<PaymentGroup>> _loadInitialGroups() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+
+    if (userId == null) {
+      throw Exception("User ID not found in SharedPreferences");
+    }
+
+    final firestoreService = FirestoreService();
+    final rawGroups = await firestoreService.getGroupsByUser(userId);
+
+    List<PaymentGroup> groups = [];
+
+    for (var groupData in rawGroups) {
+      final groupId = groupData['id'];
+
+      // Get full user objects for each member
+      final memberIds = List<String>.from(groupData['members']);
+      final members = await Future.wait(memberIds.map((id) async {
+        final userMap = await firestoreService.getUserByID(id);
+        return User(id: userMap['id'], name: userMap['name'], profileColor: null);
+      }));
+
+      final rawExpenses = await firestoreService.getPaymentsByGroup(groupId);
+      final expenses = rawExpenses.map((expense) {
+        return Expense(
+          id: expense['id'],
+          amount: (expense['amount'] as num).toDouble(),
+          description: expense['description'],
+          date: (expense['createdAt'] as Timestamp).toDate(),
+          payerId: expense['paidBy'],
+        );
+      }).toList();
+
+      groups.add(PaymentGroup(
+        id: groupId,
+        name: groupData['name'],
+        members: members,
+        expenses: expenses..sort((a, b) => b.date.compareTo(a.date)),
+      ));
+    }
+
+    print("GroupDataService: Loaded ${groups.length} groups from Firestore.");
+    return groups;
   }
 
-  // --- User Management Methods ---
+  Future<void> _loadInitialUsers() async {
+    final rawUsers = await firestoreService.getAllUsers();
 
-  // Returns a copy of the list of all known users
-  List<User> getAllUsers() {
-    return List.from(_allUsers);
+    _allUsers.clear();
+    _allUsers.addAll(rawUsers.map((userData) {
+      return User(
+        id: userData['id'],
+        name: userData['name'],
+        profileColor: null,
+      );
+    }));
+
+    print("GroupDataService: Loaded ${_allUsers.length} users from Firestore.");
   }
 
-  // Adds a new user to the central list
-  // Returns the newly created User object
+  List<User> getAllUsers() => List.from(_allUsers);
+
   User addUser(String name) {
-    // Generate a unique ID
     final newId = 'user-${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(999)}';
-    // Assign a random color (simple approach)
-    final randomColor = Colors.primaries[Random().nextInt(Colors.primaries.length)];
-    final newUser = User(
-      id: newId,
-      name: name.trim(),
-      profileColor: randomColor,
-      // totalPaid will be calculated per group context, starts at 0 conceptually
-    );
+    final color = Colors.primaries[Random().nextInt(Colors.primaries.length)];
+    final newUser = User(id: newId, name: name.trim(), profileColor: color);
+
     _allUsers.add(newUser);
-    print("GroupDataService: User '${newUser.name}' added with ID '${newUser.id}'.");
-    // TODO: Persist user list changes
-    // Note: We might need a separate StateNotifier for users if UI needs to react directly to user list changes.
-    // For now, AddGroupScreen will re-fetch the list after adding.
+    firestoreService.addUser(name: newUser.name, userId: ''); // Firestore auto-generates ID
+
+    print("GroupDataService: User '${newUser.name}' added.");
     return newUser;
   }
 
-
-  // --- Group Data Access Methods ---
-
-  PaymentGroup? getGroupById(String groupId) {
-    try {
-      // Use state directly, as it's the list of groups
-      return state.firstWhere((group) => group.id == groupId);
-    } catch (e) {
-      print("Error in getGroupById: Group $groupId not found in current state.");
-      return null;
-    }
+  PaymentGroup getGroupById(String groupId) {
+    return state.firstWhere(
+          (group) => group.id == groupId,
+      orElse: () => throw Exception('Group not found: $groupId'),
+    );
   }
 
-  // --- Group Data Modification Methods ---
+  Future<void> updateGroupName(String groupId, String newName) async {
+    final group = getGroupById(groupId);
+    if (group == null) return;
 
-  void updateGroupName(String groupId, String newName) {
-    state = [
-      for (final group in state)
-        if (group.id == groupId)
-          // Create a new PaymentGroup object with the updated name
-          PaymentGroup(
-              id: group.id,
-              name: newName.trim(), // Ensure name is trimmed
-              members: group.members, // Keep existing members
-              expenses: group.expenses // Keep existing expenses
-          )
-        else
-          group, // Keep other groups unchanged
-    ];
-    print("GroupDataService: Group '$groupId' name updated to '$newName'. State updated.");
-    // TODO: Persist changes
+    await firestoreService.updateGroup(groupId, newName.trim(), group.members.map((m) => m.id).toList());
+    state = await _loadInitialGroups();
+    print("GroupDataService: Group name updated in Firestore.");
   }
 
-  void addExpenseToGroup(String groupId, Expense newExpense) {
-     state = [
-       for (final group in state)
-         if (group.id == groupId)
-           PaymentGroup(
-             id: group.id,
-             name: group.name,
-             members: group.members,
-             // Create new list with added expense and sort it
-             expenses: List.from(group.expenses)
-               ..add(newExpense)
-               // Ensure sorting happens correctly within the new list creation
-               ..sort((a, b) => b.date.compareTo(a.date)),
-           )
-         else
-           group,
-     ];
-     print("GroupDataService: Expense '${newExpense.description}' added to group '$groupId'. State updated.");
-     // TODO: Persist changes
+  Future<void> addExpenseToGroup(String groupId, Expense newExpense) async {
+    await firestoreService.addPayment(
+      groupId,
+      newExpense.amount,
+      newExpense.description,
+      newExpense.payerId,
+    );
+
+    state = await _loadInitialGroups();
+    print("GroupDataService: Expense added and state refreshed.");
   }
 
-  // --- ADD GROUP METHOD ---
-  void addGroup(String name, List<User> members) {
-    if (name.trim().isEmpty) {
-      print("GroupDataService: Cannot add group with empty name.");
+  Future<void> addGroup(String name, List<User> members) async {
+    if (name.trim().isEmpty || members.isEmpty) {
+      print("GroupDataService: Cannot add group with empty name or no members.");
       return;
     }
-    if (members.isEmpty) {
-       print("GroupDataService: Cannot add group with no members.");
-       return;
-    }
-    final newId = 'group-${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(999)}';
-    final newGroup = PaymentGroup(
-      id: newId,
-      name: name.trim(),
-      members: List.from(members),
-      expenses: [],
-    );
-    // Create a new list including the new group
-    state = [...state, newGroup];
-    print("GroupDataService: Group '$name' added with ID '$newId'. State updated.");
-    // TODO: Persist group list changes
+
+    await firestoreService.addGroup(name, members.map((m) => m.id).toList());
+
+    state = await _loadInitialGroups();
+    print("GroupDataService: Group added to Firestore.");
   }
 
-  // --- Delete Group Method --- (THIS IS ALREADY CORRECT)
-  void deleteGroup(String groupId) {
-    final initialLength = state.length;
-    // Filter out the group to be deleted, creating a new list
-    state = state.where((group) => group.id != groupId).toList();
-    if (state.length < initialLength) {
-        print("GroupDataService: Group '$groupId' deleted. State updated.");
-         // TODO: Persist changes
-    } else {
-        print("GroupDataService: Group '$groupId' not found for deletion.");
-    }
+  Future<void> deleteGroup(String groupId) async {
+    await firestoreService.deleteGroup(groupId);
+    state = await _loadInitialGroups();
+    print("GroupDataService: Group deleted from Firestore.");
   }
-
-  // --- Placeholder for Member Management --- (Keep commented out)
-  // void addMemberToGroup(String groupId, User newMember) { ... }
-  // void removeMemberFromGroup(String groupId, String userId) { ... }
 }

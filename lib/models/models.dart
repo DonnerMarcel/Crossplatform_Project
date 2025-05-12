@@ -14,30 +14,25 @@ class User {
     this.totalPaid = 0.0,
   });
 
-  String get initials {
-    if (name.isEmpty) return '?';
-    List<String> parts = name.trim().split(' ');
-    parts.removeWhere((part) => part.isEmpty);
-
-    if (parts.length > 1 && parts.last.isNotEmpty) {
-      // Use first letter of the first and last part
-      return parts.first.substring(0, 1).toUpperCase() +
-             parts.last.substring(0, 1).toUpperCase();
-    } else if (parts.isNotEmpty && parts.first.isNotEmpty) {
-      // Use the first letter of the only part
-      return parts.first.substring(0, 1).toUpperCase();
-    } else {
-      return '?'; // Fallback if name is weirdly formatted
-    }
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: map['id'],
+      name: map['name'] ?? '',
+      profileColor: map['profileColor'] != null
+          ? Color(int.parse(map['profileColor']))
+          : null,
+      totalPaid: (map['totalPaid'] ?? 0.0).toDouble(),
+    );
   }
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is User && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'profileColor': profileColor?.value.toString(),
+      'totalPaid': totalPaid,
+    };
+  }
 }
 
 // --- Expense Class ---
@@ -55,6 +50,26 @@ class Expense {
     required this.description,
     required this.payerId,
   });
+
+  factory Expense.fromMap(Map<String, dynamic> map) {
+    return Expense(
+      id: map['id'],
+      amount: (map['amount'] as num).toDouble(),
+      date: DateTime.parse(map['date']),
+      description: map['description'] ?? '',
+      payerId: map['payerId'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'amount': amount,
+      'date': date.toIso8601String(),
+      'description': description,
+      'payerId': payerId,
+    };
+  }
 }
 
 // --- PaymentGroup Class ---
@@ -71,47 +86,25 @@ class PaymentGroup {
     required this.expenses,
   });
 
-  Map<String, double> get userTotals {
-    Map<String, double> totals = { for (var user in members) user.id : 0.0 };
-
-    // Sum expenses for each payer
-    for (var expense in expenses) {
-      if (totals.containsKey(expense.payerId)) {
-        totals[expense.payerId] = totals[expense.payerId]! + expense.amount;
-      }
-    }
-
-    // Update the totalPaid field on the User objects within this group instance
-    for(var user in members) {
-        user.totalPaid = totals[user.id] ?? 0.0;
-    }
-    return totals;
+  factory PaymentGroup.fromMap(Map<String, dynamic> map) {
+    return PaymentGroup(
+      id: map['id'],
+      name: map['name'] ?? '',
+      members: (map['members'] as List<dynamic>)
+          .map((member) => User.fromMap(member))
+          .toList(),
+      expenses: (map['expenses'] as List<dynamic>)
+          .map((expense) => Expense.fromMap(expense))
+          .toList(),
+    );
   }
 
-  // Calculate the sum of all expenses in this group.
-  double get totalGroupExpenses {
-      return expenses.fold(0.0, (sum, item) => sum + item.amount);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'members': members.map((u) => u.toMap()).toList(),
+      'expenses': expenses.map((e) => e.toMap()).toList(),
+    };
   }
-
-  bool isUserBehind(String userId) {
-    if (members.isEmpty) return false;
-
-    final totalsMap = userTotals;
-    final userPayment = totalsMap[userId] ?? 0.0;
-    final totalPaidInGroup = totalGroupExpenses;
-
-    if (totalPaidInGroup <= 0) return false;
-
-    final averagePayment = totalPaidInGroup / members.length;
-
-    return userPayment < (averagePayment - 0.01);
-  }
-
-   User? getUserById(String id) {
-       try {
-           return members.firstWhere((user) => user.id == id);
-       } catch (e) {
-           return null; // Return null if the user is not in the members list
-       }
-   }
 }
