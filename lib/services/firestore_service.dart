@@ -11,7 +11,7 @@ class FirestoreService {
   Future<void> addUser({required String userId, required String name}) async {
     await _db.collection('users').doc(userId).set({
       'name': name,
-      'totalPaid': 0.0,
+      'totalPaid': 0.0, // can keep or remove if not needed globally
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -23,7 +23,7 @@ class FirestoreService {
     });
   }
 
-  /// Update an existing user's totalPaid in the 'users' collection
+  /// Update an existing user's totalPaid in the 'users' collection (optional)
   Future<void> updateUserTotalPaid({required String userId, required double newTotalPaid}) async {
     await _db.collection('users').doc(userId).update({
       'totalPaid': newTotalPaid,
@@ -65,18 +65,29 @@ class FirestoreService {
 
   /// Add a new Group to the 'groups' collection
   Future<void> addGroup(String name, List<String> memberIds) async {
+    // Create members map with userId keys and initial totalPaid = 0.0
+    Map<String, Map<String, dynamic>> membersMap = {};
+    for (var memberId in memberIds) {
+      membersMap[memberId] = {'totalPaid': 0.0};
+    }
+
     await _db.collection('groups').add({
       'name': name,
       'createdAt': FieldValue.serverTimestamp(),
-      'members': memberIds, // Store list of user IDs
+      'members': membersMap,
     });
   }
 
   /// Update an existing group's name and/or members
   Future<void> updateGroup(String groupId, String newName, List<String> memberIds) async {
+    Map<String, Map<String, dynamic>> membersMap = {};
+    for (var memberId in memberIds) {
+      membersMap[memberId] = {'totalPaid': 0.0}; // reset or keep logic can be added here if needed
+    }
+
     await _db.collection('groups').doc(groupId).update({
       'name': newName,
-      'members': memberIds, // Update the members list
+      'members': membersMap,
     });
   }
 
@@ -109,7 +120,7 @@ class FirestoreService {
   /// Get all groups where a specific user is a member
   Future<List<Map<String, dynamic>>> getGroupsByUser(String userId) async {
     final snapshot = await _db.collection('groups')
-        .where('members', arrayContains: userId)  // Query where the user ID is in the members array
+        .where('members.$userId', isGreaterThanOrEqualTo: null) // query for userId as a key in members map
         .get();
 
     return snapshot.docs.map((doc) {
@@ -128,10 +139,11 @@ class FirestoreService {
       throw Exception('Group not found');
     }
 
-    final currentMembers = List<String>.from(groupSnapshot.data()?['members'] ?? []);
-    if (!currentMembers.contains(userId)) {
-      currentMembers.add(userId);
-      await groupRef.update({'members': currentMembers});
+    final membersMap = Map<String, dynamic>.from(groupSnapshot.data()?['members'] ?? {});
+
+    if (!membersMap.containsKey(userId)) {
+      membersMap[userId] = {'totalPaid': 0.0};
+      await groupRef.update({'members': membersMap});
     } else {
       throw Exception('User is already a member');
     }
@@ -146,12 +158,13 @@ class FirestoreService {
       throw Exception('Group not found');
     }
 
-    final currentMembers = List<String>.from(groupSnapshot.data()?['members'] ?? []);
-    if (currentMembers.contains(userId)) {
-      currentMembers.remove(userId);
-      await groupRef.update({'members': currentMembers});
+    final membersMap = Map<String, dynamic>.from(groupSnapshot.data()?['members'] ?? {});
+
+    if (membersMap.containsKey(userId)) {
+      membersMap.remove(userId);
+      await groupRef.update({'members': membersMap});
     } else {
-      throw Exception('User not a member of this group');
+      throw Exception('User is not a member of this group');
     }
   }
 
@@ -159,14 +172,34 @@ class FirestoreService {
   // PAYMENT FUNCTIONS
   // ================
 
-  /// Add a new payment to a specific group
+  /// Add a new payment to a specific group and update the user's totalPaid in that group
   Future<void> addPayment(String groupId, double amount, String description, String paidByUserId) async {
-    await _db.collection('groups').doc(groupId).collection('payments').add({
+    final groupRef = _db.collection('groups').doc(groupId);
+    final groupSnapshot = await groupRef.get();
+
+    if (!groupSnapshot.exists) {
+      throw Exception('Group not found');
+    }
+
+    final membersMap = Map<String, dynamic>.from(groupSnapshot.data()?['members'] ?? {});
+
+    if (!membersMap.containsKey(paidByUserId)) {
+      throw Exception('User is not a member of the group');
+    }
+
+    // Add the payment document
+    await groupRef.collection('payments').add({
       'amount': amount,
       'createdAt': FieldValue.serverTimestamp(),
       'description': description,
-      'paidBy': paidByUserId, // Reference to the user who paid
+      'paidBy': paidByUserId,
     });
+
+    // Update totalPaid for this user inside the group
+    double currentTotalPaid = (membersMap[paidByUserId]['totalPaid'] ?? 0.0) as double;
+    membersMap[paidByUserId]['totalPaid'] = currentTotalPaid + amount;
+
+    await groupRef.update({'members': membersMap});
   }
 
   /// Update an existing payment in the 'payments' sub-collection
