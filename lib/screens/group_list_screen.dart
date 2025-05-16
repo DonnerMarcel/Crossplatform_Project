@@ -31,6 +31,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   void initState() {
     super.initState();
     _loadUser();
+    _loadBannerAd();
   }
 
   Future<void> _loadUser() async {
@@ -50,12 +51,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBannerAd();
-  }
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
