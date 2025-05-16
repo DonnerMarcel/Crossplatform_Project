@@ -1,6 +1,7 @@
 // In lib/screens/main_screen.dart (or wherever MainScreen is defined)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/data/dummy_data.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
@@ -72,7 +73,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
 
     if (result != null && mounted) {
-      ref.read(groupServiceProvider.notifier).addExpenseToGroup(widget.groupId, result);
+      ref.read(groupServiceProvider.notifier).addExpenseToGroup(groupId: widget.groupId, newExpense: result);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Expense "${result.description}" saved.'),

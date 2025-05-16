@@ -8,17 +8,25 @@ class FirestoreService {
   // ================
 
   /// Add a new user to the 'users' collection
-  Future<void> addUser(String name) async {
-    await _db.collection('users').add({
+  Future<void> addUser({required String userId, required String name}) async {
+    await _db.collection('users').doc(userId).set({
       'name': name,
-      'createdAt' : FieldValue.serverTimestamp(),
+      'totalPaid': 0.0,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  /// Update an existing user in the 'users' collection
-  Future<void> updateUser(String userId, String newName) async {
+  /// Update an existing user's name in the 'users' collection
+  Future<void> updateUserName({required String userId, required String newName}) async {
     await _db.collection('users').doc(userId).update({
       'name': newName,
+    });
+  }
+
+  /// Update an existing user's totalPaid in the 'users' collection
+  Future<void> updateUserTotalPaid({required String userId, required double newTotalPaid}) async {
+    await _db.collection('users').doc(userId).update({
+      'totalPaid': newTotalPaid,
     });
   }
 

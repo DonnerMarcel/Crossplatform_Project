@@ -100,7 +100,7 @@ class SpinningWheelPainter extends CustomPainter {
       final textY = center.dy + textRadius * sin(textAngle);
       final textOffset = Offset(textX, textY);
 
-      textPainter.text = TextSpan(text: segment.user.initials, style: textStyle);
+      textPainter.text = TextSpan(text: segment.user.name.substring(0,1), style: textStyle);
       textPainter.layout();
 
       canvas.save();

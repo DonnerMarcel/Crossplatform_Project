@@ -23,7 +23,14 @@ class HistoryScreen extends StatelessWidget {
             itemCount: expenses.length,
             itemBuilder: (context, index) {
               final expense = expenses[index];
-              final payerUser = group.getUserById(expense.payerId);
+              final payerUser = group.members.firstWhere(
+                    (user) => user.id == expense.payerId,
+                orElse: () => User(
+                  id: 'unknown',
+                  name: 'Unknown',
+                  profileColor: Colors.grey,
+                ),
+              );
 
               return ExpenseCard(expense: expense, payer: payerUser);
             },

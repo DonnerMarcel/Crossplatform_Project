@@ -27,7 +27,7 @@ class UserBalanceCard extends StatelessWidget {
             backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
             foregroundColor: theme.colorScheme.onPrimaryContainer, // Auto text color based on background
             child: Text(
-              user.initials,
+              user.name.substring(0,1),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14) // Consistent font size for initials
             ),
         ),

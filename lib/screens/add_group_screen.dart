@@ -241,55 +241,6 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                   ),
                ),
                const SizedBox(height: 24),
-
-                // --- MODIFIED: Selected Members Section (More Compact) ---
-                Text('Selected Members (${_selectedMembers.length})', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 6), // Reduced vertical space
-                _selectedMembers.isEmpty
-                    ? const Padding( // Added padding for consistent vertical space when empty
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          " Select users from the list below.",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : Container( // Using Container for more control, optionally add border/background
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0), // Reduced padding
-                        // Optional: Add subtle background or border if needed
-                        // decoration: BoxDecoration(
-                        //    color: theme.colorScheme.secondaryContainer.withOpacity(0.05),
-                        //    border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
-                        //    borderRadius: BorderRadius.circular(8),
-                        // ),
-                        child: Wrap(
-                          spacing: 6.0, // Horizontal gap between chips
-                          runSpacing: 0.0, // Vertical gap between lines of chips (set to 0 for compactness)
-                          children: _selectedMembers.map((user) {
-                            return InputChip(
-                              key: ValueKey(user.id), // Important for stateful updates
-                              label: Text(user.name),
-                              labelPadding: const EdgeInsets.symmetric(horizontal: 4.0), // Reduced label padding
-                              avatar: CircleAvatar(
-                                radius: 12, // Smaller avatar
-                                backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
-                                foregroundColor: theme.colorScheme.onPrimaryContainer,
-                                child: Text(user.initials, style: const TextStyle(fontSize: 10)), // Smaller font
-                              ),
-                              onDeleted: () => _removeSelectedUser(user),
-                              deleteIconColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-                              // Optional: Use a slightly different background for the chip itself
-                              backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.3),
-                              // Using compact density is good
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.all(2.0), // Reduced padding inside the chip
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce tap area slightly
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                const SizedBox(height: 20), // Adjusted space before next section
-
-
                // --- Available Members Card ---
                  Card(
                    elevation: 1,
@@ -298,6 +249,52 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                      child: Column(
                        crossAxisAlignment: CrossAxisAlignment.start,
                        children: [
+                         // --- MODIFIED: Selected Members Section (More Compact) ---
+                         Text('Selected Members (${_selectedMembers.length})', style: theme.textTheme.titleMedium),
+                         const SizedBox(height: 6), // Reduced vertical space
+                         _selectedMembers.isEmpty
+                             ? const Padding( // Added padding for consistent vertical space when empty
+                           padding: EdgeInsets.symmetric(vertical: 8.0),
+                           child: Text(
+                             " Select users from the list below.",
+                             style: TextStyle(color: Colors.grey),
+                           ),
+                         )
+                             : Container( // Using Container for more control, optionally add border/background
+                           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0), // Reduced padding
+                           // Optional: Add subtle background or border if needed
+                           // decoration: BoxDecoration(
+                           //    color: theme.colorScheme.secondaryContainer.withOpacity(0.05),
+                           //    border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
+                           //    borderRadius: BorderRadius.circular(8),
+                           // ),
+                           child: Wrap(
+                             spacing: 6.0, // Horizontal gap between chips
+                             runSpacing: 0.0, // Vertical gap between lines of chips (set to 0 for compactness)
+                             children: _selectedMembers.map((user) {
+                               return InputChip(
+                                 key: ValueKey(user.id), // Important for stateful updates
+                                 label: Text(user.name),
+                                 labelPadding: const EdgeInsets.symmetric(horizontal: 4.0), // Reduced label padding
+                                 avatar: CircleAvatar(
+                                   radius: 12, // Smaller avatar
+                                   backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
+                                   foregroundColor: theme.colorScheme.onPrimaryContainer,
+                                   child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 10)), // Smaller font
+                                 ),
+                                 onDeleted: () => _removeSelectedUser(user),
+                                 deleteIconColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                 // Optional: Use a slightly different background for the chip itself
+                                 backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.3),
+                                 // Using compact density is good
+                                 visualDensity: VisualDensity.compact,
+                                 padding: const EdgeInsets.all(2.0), // Reduced padding inside the chip
+                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce tap area slightly
+                               );
+                             }).toList(),
+                           ),
+                         ),
+                         const SizedBox(height: 20), // Adjusted space before next section
                            Text('Available Users', style: theme.textTheme.titleMedium),
                            const SizedBox(height: 8),
                            // --- Search Field ---
@@ -352,7 +349,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                                           backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                                           foregroundColor: theme.colorScheme.onPrimaryContainer,
                                           radius: 16,
-                                          child: Text(user.initials, style: const TextStyle(fontSize: 12)),
+                                          child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 12)),
                                        ),
                                        title: Text(user.name),
                                        // Add button instead of checkbox
