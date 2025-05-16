@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/services/firestore_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // Assuming these imports are correct for your project structure
 import '../providers.dart';
@@ -43,6 +46,42 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   Future<String?> _getStoredUid() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('userId');
+  }
+
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/6300978111'
+          : 'ca-app-pub-3940256099942544/2934735716',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('Ad failed to load: $error');
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   // --- Navigation Logic ---
@@ -89,25 +128,17 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
       body: SafeArea( // <--- SafeArea ADDED HERE
         child: Column( // <--- Column is now child of SafeArea
           children: [
-            // --- AD Placeholder ---
-            Container(
-              width: double.infinity,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              margin: const EdgeInsets.only(
-                  bottom: 8.0, left: 16.0, right: 16.0 /*, top: 0 */), // Note: Top margin might be adjusted/removed
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  'AD Placeholder',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSecondaryContainer),
-                ),
-              ),
-            ),
+            // --- Ad Section ---
+            if (_isAdLoaded && _bannerAd != null)
+              Container(
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: AdWidget(ad: _bannerAd!),
+              )
+            else
+              const SizedBox(height: 50),
+
             // --- Group List ---
             Expanded(
               child: groupsToShow.isEmpty
