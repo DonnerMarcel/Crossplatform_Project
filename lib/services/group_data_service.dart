@@ -17,10 +17,10 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
 
   Future<void> _initializeData() async {
     await _loadInitialUsers();
-    state = await _loadInitialGroups();
+    state = await _loadGroups();
   }
 
-  static Future<List<PaymentGroup>> _loadInitialGroups() async {
+  static Future<List<PaymentGroup>> _loadGroups() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId');
 
@@ -40,7 +40,12 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
       final memberIds = List<String>.from(groupData['members']);
       final members = await Future.wait(memberIds.map((id) async {
         final userMap = await firestoreService.getUserByID(id);
-        return User(id: userMap['id'], name: userMap['name'], profileColor: null);
+        return User(
+          id: userMap['id'],
+          name: userMap['name'],
+          totalPaid: (userMap['totalPaid'] as num?)?.toDouble() ?? 0.0,
+          profileColor: null,
+        );
       }));
 
       final rawExpenses = await firestoreService.getPaymentsByGroup(groupId);
@@ -107,11 +112,14 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
     if (group == null) return;
 
     await firestoreService.updateGroup(groupId, newName.trim(), group.members.map((m) => m.id).toList());
-    state = await _loadInitialGroups();
+    state = await _loadGroups();
     print("GroupDataService: Group name updated in Firestore.");
   }
 
-  Future<void> addExpenseToGroup(String groupId, Expense newExpense) async {
+  Future<void> addExpenseToGroup({
+    required String groupId,
+    required Expense newExpense,
+  }) async {
     await firestoreService.addPayment(
       groupId,
       newExpense.amount,
@@ -119,8 +127,65 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
       newExpense.payerId,
     );
 
-    state = await _loadInitialGroups();
+    final userDoc = await firestoreService.getUserByID(newExpense.payerId);
+    final currentTotalPaid = userDoc['totalPaid'] ?? 0.0;
+
+    await firestoreService.updateUserTotalPaid(
+      userId: userDoc['id'],
+      newTotalPaid: currentTotalPaid + newExpense.amount,
+    );
+
+    state = await _loadGroups();
     print("GroupDataService: Expense added and state refreshed.");
+  }
+
+  Future<void> updateExpenseInGroup({
+    required String groupId,
+    required String paymentId,
+    required String userId,
+    required double newAmount,
+    required String newDescription,
+  }) async {
+    // Get the old payment to compare old vs new amount
+    final oldPayment = await firestoreService.getPaymentById(groupId, paymentId);
+    final oldAmount = oldPayment['amount'] ?? 0.0;
+
+    // Update the payment
+    await firestoreService.updatePayment(groupId, paymentId, newAmount, newDescription);
+
+    // Adjust the user's totalPaid
+    final userDoc = await firestoreService.getUserByID(userId);
+    final currentTotalPaid = userDoc['totalPaid'] ?? 0.0;
+
+    final adjustedTotal = currentTotalPaid - oldAmount + newAmount;
+
+    await firestoreService.updateUserTotalPaid(userId: userId, newTotalPaid: adjustedTotal);
+
+    state = await _loadGroups();
+    print("GroupDataService: Expense updated and state refreshed.");
+  }
+
+  Future<void> deleteExpenseFromGroup({
+    required String groupId,
+    required String paymentId,
+    required String userId,
+  }) async {
+    // Get the payment to subtract its amount
+    final payment = await firestoreService.getPaymentById(groupId, paymentId);
+    final amount = payment['amount'] ?? 0.0;
+
+    // Delete the payment
+    await firestoreService.deletePayment(groupId, paymentId);
+
+    // Adjust the user's totalPaid
+    final userDoc = await firestoreService.getUserByID(userId);
+    final currentTotalPaid = userDoc['totalPaid'] ?? 0.0;
+
+    final newTotal = currentTotalPaid - amount;
+    await firestoreService.updateUserTotalPaid(userId: userId, newTotalPaid: newTotal);
+
+    state = await _loadGroups();
+    print("GroupDataService: Expense deleted and state refreshed.");
   }
 
   Future<void> addGroup(String name, List<User> members) async {
@@ -131,13 +196,13 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
 
     await firestoreService.addGroup(name, members.map((m) => m.id).toList());
 
-    state = await _loadInitialGroups();
+    state = await _loadGroups();
     print("GroupDataService: Group added to Firestore.");
   }
 
   Future<void> deleteGroup(String groupId) async {
     await firestoreService.deleteGroup(groupId);
-    state = await _loadInitialGroups();
+    state = await _loadGroups();
     print("GroupDataService: Group deleted from Firestore.");
   }
 }

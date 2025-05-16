@@ -86,6 +86,8 @@ class PaymentGroup {
     required this.expenses,
   });
 
+  double get totalPaid => members.fold(0.0, (sum, user) => sum + (user.totalPaid ?? 0.0));
+
   factory PaymentGroup.fromMap(Map<String, dynamic> map) {
     return PaymentGroup(
       id: map['id'],
