@@ -37,13 +37,15 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
       final groupId = groupData['id'];
 
       // Get full user objects for each member
-      final memberIds = List<String>.from(groupData['members']);
-      final members = await Future.wait(memberIds.map((id) async {
-        final userMap = await firestoreService.getUserByID(id);
+      final membersMap = Map<String, dynamic>.from(groupData['members']);
+      final members = await Future.wait(membersMap.entries.map((entry) async {
+        final userId = entry.key;
+        final userData = await firestoreService.getUserByID(userId);
+
         return User(
-          id: userMap['id'],
-          name: userMap['name'],
-          totalPaid: (userMap['totalPaid'] as num?)?.toDouble() ?? 0.0,
+          id: userId,
+          name: userData['name'],
+          totalPaid: (entry.value['totalPaid'] as num?)?.toDouble() ?? 0.0,
           profileColor: null,
         );
       }));
