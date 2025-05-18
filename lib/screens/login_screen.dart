@@ -35,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Save UserID locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', credentials.user!.uid);
+      await prefs.setString('userEmail', credentials.user!.email ?? '');
 
       Navigator.pushReplacement(
         context,
