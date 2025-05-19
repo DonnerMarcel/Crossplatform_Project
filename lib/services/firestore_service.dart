@@ -119,15 +119,20 @@ class FirestoreService {
 
   /// Get all groups where a specific user is a member
   Future<List<Map<String, dynamic>>> getGroupsByUser(String userId) async {
-    final snapshot = await _db.collection('groups')
-        .where('members.$userId', isGreaterThanOrEqualTo: null) // query for userId as a key in members map
-        .get();
+    final snapshot = await _db.collection('groups').get();
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
+    final userGroups = snapshot.docs.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final members = data['members'] as Map<String, dynamic>?;
+
+      return members != null && members.containsKey(userId);
+    }).map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
       data['id'] = doc.id;
       return data;
     }).toList();
+
+    return userGroups;
   }
 
   /// Add a member to an existing group (by group ID and user ID)
