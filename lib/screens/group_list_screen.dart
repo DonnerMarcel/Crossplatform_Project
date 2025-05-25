@@ -32,6 +32,10 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     super.initState();
     _loadUser();
     _loadBannerAd();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(groupServiceProvider);
+    });
   }
 
   Future<void> _loadUser() async {

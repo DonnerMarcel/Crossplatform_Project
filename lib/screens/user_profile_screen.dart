@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
 import '../services/firestore_service.dart';
 import '../models/models.dart';
@@ -19,11 +20,17 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   final FirestoreService firestoreService = FirestoreService();
+  final _formKey = GlobalKey<FormState>();
+
   File? _imageFile;
   User? currentUser;
   String? email;
   String? uid;
   Timestamp? createdAt;
+  bool _isEditing = false;
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   @override
   void initState() {
@@ -41,23 +48,45 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         uid = storedUid;
         email = storedEmail;
-        createdAt = doc['createdAt']; // <-- Get it directly
+        createdAt = doc['createdAt'];
         currentUser = User(
           id: doc['id'],
           name: doc['name'],
           totalPaid: (doc['totalPaid'] ?? 0).toDouble(),
         );
+        _nameController.text = currentUser?.name ?? '';
+        _emailController.text = email ?? '';
       });
     }
   }
 
   Future<void> _openCamera() async {
     final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.camera);
+    await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
       });
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final newName = _nameController.text.trim();
+
+    if (currentUser != null && uid != null) {
+      // Update name in Firestore
+      await firestoreService.updateUserName(userId: uid!, newName: newName);
+
+      setState(() {
+        currentUser!.name = newName;
+        _isEditing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated')),
+      );
     }
   }
 
@@ -88,7 +117,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
+              (route) => false,
         );
       }
     }
@@ -96,18 +125,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (currentUser == null) {
-      //show empty container until _loadUser is finished or I would have to code
-      //a lot of garbage to handle nulls
-      return const Scaffold();
-    }
+    final theme = Theme.of(context);
+
+    if (currentUser == null) return const Scaffold();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
-      body: Padding(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(_isEditing ? Icons.close : Icons.edit),
+            tooltip: _isEditing ? 'Cancel Edit' : 'Edit Profile',
+            onPressed: () {
+              setState(() {
+                _isEditing = !_isEditing;
+                if (!_isEditing) {
+                  _nameController.text = currentUser?.name ?? '';
+                  _emailController.text = email ?? '';
+                }
+              });
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Center(
+        child: Form(
+          key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 8),
               Stack(
@@ -118,8 +166,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     backgroundImage: _imageFile != null
                         ? FileImage(_imageFile!)
                         : const AssetImage(
-                                'assets/icons/avatar_placeholder.png')
-                            as ImageProvider,
+                        'assets/icons/avatar_placeholder.png')
+                    as ImageProvider,
                   ),
                   Positioned(
                     bottom: -10,
@@ -136,70 +184,47 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 50),
+              _isEditing
+                  ? TextFormField(
+                controller: _nameController,
+                decoration: _buildInputDecoration(
+                  labelText: 'Name',
+                  prefixIconData: Icons.person_outlined,
+                  context: context,
+                ),
+                validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Enter name' : null,
+              )
+                  : TextFormField(
+                readOnly: true,
+                initialValue: currentUser?.name ?? '',
+                decoration: _buildInputDecoration(
+                  labelText: 'Name',
+                  prefixIconData: Icons.person_outlined,
+                  context: context,
+                ),
+              ),
               const SizedBox(height: 16),
-              IgnorePointer(
-                child: TextFormField(
-                  readOnly: true,
-                  initialValue: currentUser?.name,
-                  // Your actual displayed text inside the field
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    // Floating label above the field
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    prefixIcon:Icon(Icons.person_outlined, color: Theme.of(context).colorScheme.primary),
-                    filled: true,
-                    fillColor: Colors.black.withOpacity(0.04),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
+              TextFormField(
+                readOnly: true,
+                initialValue: email ?? '',
+                decoration: _buildInputDecoration(
+                  labelText: 'Email',
+                  prefixIconData: Icons.email_outlined,
+                  context: context,
                 ),
               ),
               const SizedBox(height: 16),
               IgnorePointer(
                 child: TextFormField(
                   readOnly: true,
-                  initialValue: email ?? '',
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    // Floating label above the field
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    prefixIcon: Icon(Icons.email_outlined, color: Theme.of(context).colorScheme.primary),
-                    filled: true,
-                    fillColor: Colors.black.withOpacity(0.04),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              IgnorePointer(
-                child: TextFormField(
-                  readOnly: true,
-                  initialValue: currentUser?.totalPaid.toStringAsFixed(2),
-                  decoration: InputDecoration(
+                  initialValue:
+                  currentUser?.totalPaid.toStringAsFixed(2) ?? '0.00',
+                  decoration: _buildInputDecoration(
                     labelText: 'Total Paid',
-                    // Floating label above the field
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    prefixIcon: Icon(Icons.euro_outlined, color: Theme.of(context).colorScheme.primary),
-                    filled: true,
-                    fillColor: Colors.black.withOpacity(0.04),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                    prefixIconData: Icons.euro_outlined,
+                    context: context,
                   ),
                 ),
               ),
@@ -209,36 +234,53 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   readOnly: true,
                   initialValue: createdAt != null
                       ? DateFormat('dd.MM.yyyy').format(
-                          DateTime.fromMillisecondsSinceEpoch(
-                              createdAt!.millisecondsSinceEpoch))
+                      DateTime.fromMillisecondsSinceEpoch(
+                          createdAt!.millisecondsSinceEpoch))
                       : '',
-                  decoration: InputDecoration(
+                  decoration: _buildInputDecoration(
                     labelText: 'Created At',
-                    // Floating label above the field
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    prefixIcon: Icon(Icons.calendar_today_outlined, color: Theme.of(context).colorScheme.primary),
-                    filled: true,
-                    fillColor: Colors.black.withOpacity(0.04),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                    prefixIconData: Icons.calendar_today_outlined,
+                    context: context,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: _confirmLogout,
-                icon: const Icon(Icons.logout),
-                label: const Text('Logout'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(48),
+              const SizedBox(height: 24),
+              if (_isEditing)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _updateProfile,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save Changes'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      backgroundColor: theme.colorScheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _confirmLogout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -256,14 +298,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     BuildContext? context,
   }) {
     final iconColor =
-        context != null ? Theme.of(context).colorScheme.primary : null;
+    context != null ? Theme.of(context).colorScheme.primary : null;
 
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
       filled: true,
       fillColor: Colors.black.withOpacity(0.04),
-      floatingLabelBehavior: FloatingLabelBehavior.never,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       prefixIcon: prefixIconData != null
           ? Icon(prefixIconData, color: iconColor)
           : null,
