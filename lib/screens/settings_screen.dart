@@ -166,32 +166,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const Divider(),
 
-            // --- Portion Cost Setting (Placeholder - Unchanged) ---
-            ListTile(
-              leading: const Icon(Icons.attach_money),
-              title: const Text('Cost per Portion/Meal (Global)'),
-              subtitle: Text(currencyFormatter.format(portionCostPerUser)), // Assuming portionCostPerUser defined in constants
-              onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Placeholder: Change global portion cost action'))
-                  );
-              },
-            ),
-            const Divider(),
-
-            // --- Manage Members Setting (Placeholder - Unchanged) ---
-            ListTile(
-              leading: const Icon(Icons.people_outline),
-              title: Text('Manage Members (${currentGroup.members.length})'),
-              subtitle: const Text('Add/remove members for this group'),
-              onTap: () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Placeholder: Manage members for ${currentGroup.name}'))
-                  );
-              },
-            ),
-            const Divider(),
-
             // --- Delete Group Setting (MODIFIED onTap) ---
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),

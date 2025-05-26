@@ -1,0 +1,1 @@
+C:\dev\Uni\CPD\Crossplatform_Project\build\app\intermediates\cxx\Debug\221f6c2m\obj\armeabi-v7a

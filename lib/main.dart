@@ -77,6 +77,7 @@ class FairFlipApp extends StatelessWidget {
           } else if (snapshot.hasData && snapshot.data != null) {
             return const GroupListScreen();
           } else {
+            
             return const LoginScreen();
           }
         },

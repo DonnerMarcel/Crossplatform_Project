@@ -27,11 +27,20 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
 
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadBannerAd();
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(groupServiceProvider);
@@ -87,11 +96,11 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     });
   }
 
-  Widget _buildNavItem(IconData icon, IconData activeIcon, String label, int index) {
+  Widget _buildNavItem(
+      IconData icon, IconData activeIcon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
-    final Color? itemColor = isSelected
-        ? Theme.of(context).colorScheme.primary
-        : Colors.grey[600];
+    final Color? itemColor =
+        isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[600];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -107,6 +116,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   @override
   void dispose() {
     _bannerAd?.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -122,11 +132,11 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
       body: pages[_selectedIndex],
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(
-        onPressed: _addGroup,
-        tooltip: 'Create a new group',
-        icon: const Icon(Icons.add),
-        label: const Text('Add Group'),
-      )
+              onPressed: _addGroup,
+              tooltip: 'Create a new group',
+              icon: const Icon(Icons.add),
+              label: const Text('Add Group'),
+            )
           : null,
       bottomNavigationBar: BottomAppBar(
         color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
@@ -136,22 +146,45 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           children: <Widget>[
             _buildNavItem(Icons.list_alt_outlined, Icons.list_alt, 'Groups', 0),
             _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 1),
-            _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 2), // <-- Added
+            _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings',
+                2), // <-- Added
           ],
         ),
       ),
     );
   }
 
-
-
   Widget _buildGroupListPage() {
-    final List<PaymentGroup> groupsToShow = ref.watch(groupServiceProvider);
+    final allGroups = ref.watch(groupServiceProvider);
     final theme = Theme.of(context);
+
+    // ++ Filter logic
+    final filteredGroups = allGroups.where((group) {
+      final groupNameLower = group.name.toLowerCase();
+      final searchQueryLower = _searchQuery.toLowerCase();
+      return groupNameLower.contains(searchQueryLower);
+    }).toList();
 
     return SafeArea(
       child: Column(
         children: [
+          // Search-Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search groups...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
+              ),
+            ),
+          ),
           if (_isAdLoaded && _bannerAd != null)
             Container(
               width: _bannerAd!.size.width.toDouble(),
@@ -160,14 +193,16 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               child: AdWidget(ad: _bannerAd!),
             )
           else
-            const SizedBox(height: 50),
+            const SizedBox(height: 10), // small distance
           Expanded(
-            child: groupsToShow.isEmpty
+            child: filteredGroups.isEmpty
                 ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
-                  'No groups yet.\nTap the + icon to create one!',
+                  _searchQuery.isEmpty
+                      ? 'No groups yet.\nTap the + icon to create one!'
+                      : 'No groups found for "$_searchQuery"',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
                 ),
@@ -175,9 +210,9 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
             )
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              itemCount: groupsToShow.length,
+              itemCount: filteredGroups.length,
               itemBuilder: (context, index) {
-                final group = groupsToShow[index];
+                final group = filteredGroups[index];
                 return GroupListItem(
                   group: group,
                   currentUser: currentUser!,
@@ -202,7 +237,7 @@ class SettingsPlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return const Scaffold(      
       body: Center(child: Text("Settings screen (placeholder)")),
     );
   }
