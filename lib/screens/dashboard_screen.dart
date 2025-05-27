@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:pie_chart/pie_chart.dart'; // PieChart is not used directly in this snippet
 
 import '../models/models.dart';
-// import '../providers.dart'; // Not directly used in this snippet for Riverpod, but likely needed for group updates
+import '../providers.dart';
+import '../services/profile_image_cache_provider.dart';
 import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
 import '../widgets/history/expense_card.dart';
@@ -28,6 +29,9 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _showResultDialog(User selectedUser) {
+    final imageCache = ref.read(profileImageCacheProvider);
+    final imageUrl = imageCache[selectedUser.id];
+
     showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -36,6 +40,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         content: Row(
           children: [
             CircleAvatar(
+              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
               backgroundColor: selectedUser.profileColor ?? Colors.grey[300],
               foregroundColor:
                   ThemeData.estimateBrightnessForColor(selectedUser.profileColor ?? Colors.grey[300]!) == Brightness.dark
@@ -189,6 +194,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // final pieColorList = _createPieColorList(theme); // If pie chart is re-added
     // final bool showChart = pieDataMap.isNotEmpty; // If pie chart is re-added
 
+    final imageCache = ref.watch(profileImageCacheProvider);
+
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -210,10 +217,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 20),
 
-        Text('User Balances (Total Paid by User)', style: theme.textTheme.titleLarge),
+        // User totals with cached images (sync access)
+        Text('User Balances (Total Paid)', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
-        if (currentGroup.members.isNotEmpty)
-          ...currentGroup.members.map((user) => UserBalanceCard(user: user)).toList()
+        if (widget.group.members.isNotEmpty)
+          ...widget.group.members.map((user) {
+            final imageUrl = imageCache[user.id];
+            return UserBalanceCard(user: user, userImageUrl: imageUrl);
+          }).toList()
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -259,20 +270,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 28),
 
+        // Last Expense with cached image
         Text('Last Expense', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         if (latestExpense != null)
-          ExpenseCard(
-            expense: latestExpense,
-            payer: currentGroup.members.firstWhere(
+          Builder(builder: (context) {
+            final payer = widget.group.members.firstWhere(
                   (user) => user.id == latestExpense.payerId,
               orElse: () => User(
                 id: 'unknown_payer', // More specific ID
                 name: 'Unknown Payer',
                 profileColor: Colors.grey[400], // Slightly different color
               ),
-            ),
-          )
+            );
+            final imageUrl = imageCache[payer.id];
+            return ExpenseCard(expense: latestExpense, payer: payer, payerImageUrl: imageUrl);
+          })
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),

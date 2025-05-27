@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers.dart';
+import '../services/profile_image_cache_provider.dart';
 
 class AddGroupScreen extends ConsumerStatefulWidget {
   const AddGroupScreen({super.key});
@@ -250,6 +251,9 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                           spacing: 6.0,
                           runSpacing: 0.0,
                           children: _selectedMembers.map((user) {
+                            final imageCache = ref.watch(profileImageCacheProvider);
+                            final imageUrl = imageCache[user.id];
+
                             return InputChip(
                               key: ValueKey(user.id),
                               label: Text(user.id == _currentUser?.id ? '${user.name} (You)' : user.name),
@@ -258,9 +262,13 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                                 radius: 12,
                                 backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
                                 foregroundColor: theme.colorScheme.onPrimaryContainer,
-                                child: Text(user.name.substring(0, 1), style: const TextStyle(fontSize: 10)),
+                                backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                                child: imageUrl == null
+                              ? Text(user.name.isNotEmpty ? user.name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 10))
+                                  : null,
                               ),
-                              onDeleted: user.id == _currentUser?.id ? null : () => _removeSelectedUser(user),
+
+                            onDeleted: user.id == _currentUser?.id ? null : () => _removeSelectedUser(user),
                               deleteIconColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                               backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.3),
                               visualDensity: VisualDensity.compact,
@@ -318,18 +326,21 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
                           itemCount: _filteredAvailableUsers.length,
                           itemBuilder: (context, index) {
                             final user = _filteredAvailableUsers[index];
+                            final imageCache = ref.watch(profileImageCacheProvider);
+                            final imageUrl = imageCache[user.id];
 
                             return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: user.profileColor ??
-                                    theme.colorScheme.primaryContainer,
-                                foregroundColor:
-                                theme.colorScheme.onPrimaryContainer,
-                                radius: 16,
-                                child: Text(user.name.substring(0, 1),
-                                    style: const TextStyle(fontSize: 12)),
-                              ),
-                              title: Text(user.name),
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: user.profileColor ?? theme.colorScheme.primaryContainer,
+                              foregroundColor: theme.colorScheme.onPrimaryContainer,
+                              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+                              child: imageUrl == null
+                            ? Text(user.name.isNotEmpty ? user.name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12))
+                                : null,
+                            ),
+
+                            title: Text(user.name),
                               trailing: IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
                                 color: theme.colorScheme.primary,

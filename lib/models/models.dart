@@ -6,12 +6,14 @@ class User {
   String name;
   Color? profileColor;
   double totalPaid;
+  String profileImageUrl;
 
   User({
     required this.id,
     required this.name,
     this.profileColor,
     this.totalPaid = 0.0,
+    this.profileImageUrl = '',
   });
 
   factory User.fromMap(Map<String, dynamic> map) {
@@ -22,6 +24,7 @@ class User {
           ? Color(int.parse(map['profileColor']))
           : null,
       totalPaid: (map['totalPaid'] ?? 0.0).toDouble(),
+      profileImageUrl: map['profileImageUrl'] ?? '',
     );
   }
 
@@ -31,6 +34,7 @@ class User {
       'name': name,
       'profileColor': profileColor?.value.toString(),
       'totalPaid': totalPaid,
+      'profileImageUrl' : profileImageUrl,
     };
   }
 }

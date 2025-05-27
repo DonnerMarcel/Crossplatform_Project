@@ -7,6 +7,7 @@ import 'package:pie_chart/pie_chart.dart';
 import 'package:collection/collection.dart';
 
 import '../models/models.dart';
+import '../services/profile_image_cache_provider.dart';
 import '../utils/formatters.dart';
 import '../utils/constants.dart'; // For defaultPortionCost
 
@@ -272,13 +273,20 @@ class DataDetailsScreen extends ConsumerWidget {
                 : Column(
                     children: currentGroup.members.map((member) {
                       final probability = paymentProbabilities[member.id] ?? 0.0;
+                      final imageCache = ref.watch(profileImageCacheProvider);
+                      final imageUrl = imageCache[member.id];
+
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: member.profileColor ?? theme.colorScheme.primaryContainer,
-                          foregroundColor: theme.colorScheme.onPrimaryContainer,
-                          child: Text(member.name.isNotEmpty ? member.name[0].toUpperCase() : '?'),
-                        ),
-                        title: Text(member.name, style: theme.textTheme.titleMedium),
+                      leading: imageUrl != null
+                          ? CircleAvatar(
+                        backgroundImage: NetworkImage(imageUrl),
+                      )
+                          : CircleAvatar(
+                        backgroundColor: member.profileColor ?? theme.colorScheme.primaryContainer,
+                        foregroundColor: theme.colorScheme.onPrimaryContainer,
+                        child: Text(member.name.isNotEmpty ? member.name[0].toUpperCase() : '?'),
+                      ),
+                      title: Text(member.name, style: theme.textTheme.titleMedium),
                         trailing: Text(
                           '${(probability * 100).toStringAsFixed(1)}%',
                           style: theme.textTheme.titleMedium?.copyWith(
@@ -306,20 +314,30 @@ class DataDetailsScreen extends ConsumerWidget {
               ),
             )
           else
-            ...currentGroup.members.map((member) => Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: member.profileColor ?? theme.colorScheme.primaryContainer,
-                      foregroundColor: theme.colorScheme.onPrimaryContainer,
-                      child: Text(member.name.isNotEmpty ? member.name[0].toUpperCase() : '?'),
-                    ),
-                    title: Text(member.name, style: theme.textTheme.titleMedium),
-                    subtitle: Text('Total Paid: ${currencyFormatter.format(member.totalPaid ?? 0)}'),
+            ...currentGroup.members.map((member) {
+              final imageCache = ref.watch(profileImageCacheProvider);
+              final imageUrl = imageCache[member.id];
+              
+              return Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.symmetric(vertical: 4.0),
+                child: ListTile(
+                  leading: imageUrl != null
+                      ? CircleAvatar(
+                    backgroundImage: NetworkImage(imageUrl),
+                  )
+                      : CircleAvatar(
+                    backgroundColor: member.profileColor ?? theme.colorScheme.primaryContainer,
+                    foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    child: Text(member.name.isNotEmpty ? member.name[0].toUpperCase() : '?'),
                   ),
-                )),
+                  title: Text(member.name, style: theme.textTheme.titleMedium),
+                  subtitle: Text('Total Paid: ${currencyFormatter.format(member.totalPaid ?? 0)}'),
+                ),
+              );
+            }
+            )
         ],
       ),
     );

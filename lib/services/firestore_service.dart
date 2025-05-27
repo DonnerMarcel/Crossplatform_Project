@@ -8,11 +8,12 @@ class FirestoreService {
   // ================
 
   /// Add a new user to the 'users' collection
-  Future<void> addUser({required String userId, required String name}) async {
+  Future<void> addUser({required String userId, required String name, String? profileImageUrl}) async {
     await _db.collection('users').doc(userId).set({
       'name': name,
-      'totalPaid': 0.0, // can keep or remove if not needed globally
+      'totalPaid': 0.0,
       'createdAt': FieldValue.serverTimestamp(),
+      'profileImageUrl': profileImageUrl ?? '',
     });
   }
 
@@ -27,6 +28,13 @@ class FirestoreService {
   Future<void> updateUserTotalPaid({required String userId, required double newTotalPaid}) async {
     await _db.collection('users').doc(userId).update({
       'totalPaid': newTotalPaid,
+    });
+  }
+
+  /// Update a user's profile image URL
+  Future<void> updateUserProfileImage({required String userId, required String imageUrl}) async {
+    await _db.collection('users').doc(userId).update({
+      'profileImageUrl': imageUrl,
     });
   }
 
