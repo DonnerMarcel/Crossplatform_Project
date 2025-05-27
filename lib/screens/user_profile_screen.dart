@@ -75,7 +75,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   Future<void> _pickImage() async {
     final XFile? pickedFile =
-    await _picker.pickImage(source: ImageSource.camera, imageQuality: 5);
+    await _picker.pickImage(source: ImageSource.camera, maxHeight: 400, maxWidth: 400, imageQuality: 50);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
