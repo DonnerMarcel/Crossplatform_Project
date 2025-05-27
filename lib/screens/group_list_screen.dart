@@ -7,6 +7,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/firestore_service.dart';
 import '../providers.dart';
 import '../models/models.dart';
+import '../services/profile_image_preloader.dart';
 import '../widgets/group_list/group_list_item.dart';
 import 'add_group_screen.dart';
 import 'main_screen.dart';
@@ -156,6 +157,13 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
   Widget _buildGroupListPage() {
     final allGroups = ref.watch(groupServiceProvider);
+
+    // Preload images after groups load
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final users = allGroups.expand((g) => g.members).toSet().toList();
+      await preloadProfileImages(ref, users);
+    });
+
     final theme = Theme.of(context);
 
     // ++ Filter logic

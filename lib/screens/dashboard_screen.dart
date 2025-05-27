@@ -5,6 +5,7 @@ import 'package:pie_chart/pie_chart.dart';
 
 import '../models/models.dart';
 import '../providers.dart';
+import '../services/profile_image_cache_provider.dart';
 import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
 import '../widgets/history/expense_card.dart';
@@ -28,6 +29,9 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _showResultDialog(User selectedUser) {
+    final imageCache = ref.read(profileImageCacheProvider);
+    final imageUrl = imageCache[selectedUser.id];
+
     showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -36,13 +40,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         content: Row(
           children: [
             CircleAvatar(
+              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
               backgroundColor: selectedUser.profileColor ?? Colors.grey[300],
-              foregroundColor:
-              ThemeData.estimateBrightnessForColor(selectedUser.profileColor ?? Colors.grey[300]!) == Brightness.dark
+              foregroundColor: ThemeData.estimateBrightnessForColor(
+                  selectedUser.profileColor ?? Colors.grey[300]!) ==
+                  Brightness.dark
                   ? Colors.white
                   : Colors.black,
-              child: Text(selectedUser.name.substring(0, 1),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              child: imageUrl == null
+                  ? Text(selectedUser.name.substring(0, 1),
+                  style: const TextStyle(fontWeight: FontWeight.bold))
+                  : null,
             ),
             const SizedBox(width: 15),
             Expanded(child: Text('${selectedUser.name} has been selected to pay!')),
@@ -139,6 +147,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final pieColorList = _createPieColorList(theme);
     final bool showChart = pieDataMap.isNotEmpty;
 
+    final imageCache = ref.watch(profileImageCacheProvider);
+
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -159,11 +169,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 20),
 
-        // User totals
+        // User totals with cached images (sync access)
         Text('User Balances (Total Paid)', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         if (widget.group.members.isNotEmpty)
-          ...widget.group.members.map((user) => UserBalanceCard(user: user)).toList()
+          ...widget.group.members.map((user) {
+            final imageUrl = imageCache[user.id];
+            return UserBalanceCard(user: user, userImageUrl: imageUrl);
+          }).toList()
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -211,21 +224,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 28),
 
-        // Last Expense
+        // Last Expense with cached image
         Text('Last Expense', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         if (latestExpense != null)
-          ExpenseCard(
-            expense: latestExpense,
-            payer: widget.group.members.firstWhere(
+          Builder(builder: (context) {
+            final payer = widget.group.members.firstWhere(
                   (user) => user.id == latestExpense.payerId,
               orElse: () => User(
                 id: 'unknown',
                 name: 'Unknown',
                 profileColor: Colors.grey,
               ),
-            ),
-          )
+            );
+            final imageUrl = imageCache[payer.id];
+            return ExpenseCard(expense: latestExpense, payer: payer, payerImageUrl: imageUrl);
+          })
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
