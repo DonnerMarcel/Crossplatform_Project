@@ -103,14 +103,30 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     final Color? itemColor =
         isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[600];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: IconButton(
-        icon: Icon(isSelected ? activeIcon : icon),
-        color: itemColor,
-        tooltip: label,
-        onPressed: () => _onItemTapped(index),
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: itemColor,
+              size: 30,
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
       ),
+    );
+  }
+  Widget _verticalDivider() {
+    return Container(
+      height: 48,
+      width: 1,
+      color: Colors.grey[300],
     );
   }
 
@@ -126,7 +142,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     final List<Widget> pages = [
       _buildGroupListPage(),
       const UserProfileScreen(),
-      const SettingsPlaceholderScreen(),
     ];
 
     return Scaffold(
@@ -146,9 +161,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             _buildNavItem(Icons.list_alt_outlined, Icons.list_alt, 'Groups', 0),
-            _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 1),
-            _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings',
-                2), // <-- Added
+            _verticalDivider(),
+            _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 1), // <-- Added
           ],
         ),
       ),
@@ -236,17 +250,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class SettingsPlaceholderScreen extends StatelessWidget {
-  const SettingsPlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(      
-      body: Center(child: Text("Settings screen (placeholder)")),
     );
   }
 }
