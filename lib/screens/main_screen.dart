@@ -140,12 +140,25 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround, // <-- CHANGED
           children: <Widget>[
             _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
+            _buildVerticalDivider(),
             _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
+            _buildVerticalDivider(),
             // const Spacer(flex: 1), // Spacer REMOVED
             _buildNavItem(Icons.pie_chart_outline, Icons.pie_chart, 'Data', 2),
+            _buildVerticalDivider(),
             _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 3),
           ],
         ),
+      ),
+    );
+  }
+  Widget _buildVerticalDivider() {
+    return const SizedBox(
+      height: 24,
+      child: VerticalDivider(
+        color: Colors.grey,
+        thickness: 0.5,
+        width: 20,
       ),
     );
   }
