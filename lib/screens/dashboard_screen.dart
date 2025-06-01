@@ -233,10 +233,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         const SizedBox(height: 28),
 
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Expanded(
-              flex: 5,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.casino_outlined),
                 label: const Text('Spin Wheel!'),
@@ -252,7 +251,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              flex: 4,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.add_circle_outline), // Changed icon
                 label: const Text('Add Manual'),
