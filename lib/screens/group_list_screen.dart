@@ -162,7 +162,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           children: <Widget>[
             _buildNavItem(Icons.list_alt_outlined, Icons.list_alt, 'Groups', 0),
             _verticalDivider(),
-            _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 1), // <-- Added
+            _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 1),
           ],
         ),
       ),
@@ -172,7 +172,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   Widget _buildGroupListPage() {
     final allGroups = ref.watch(groupServiceProvider);
 
-    // Preload images after groups load
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final users = allGroups.expand((g) => g.members).toSet().toList();
       await preloadProfileImages(ref, users);
@@ -180,7 +179,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
     final theme = Theme.of(context);
 
-    // ++ Filter logic
     final filteredGroups = allGroups.where((group) {
       final groupNameLower = group.name.toLowerCase();
       final searchQueryLower = _searchQuery.toLowerCase();
@@ -215,7 +213,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               child: AdWidget(ad: _bannerAd!),
             )
           else
-            const SizedBox(height: 10), // small distance
+            const SizedBox(height: 10),
           Expanded(
             child: filteredGroups.isEmpty
                 ? Center(

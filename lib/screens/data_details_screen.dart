@@ -1,5 +1,5 @@
 // lib/screens/data_details_screen.dart
-import 'dart:math'; // For max function
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,14 +9,13 @@ import 'package:collection/collection.dart';
 import '../models/models.dart';
 import '../services/profile_image_cache_provider.dart';
 import '../utils/formatters.dart';
-import '../utils/constants.dart'; // For defaultPortionCost
+import '../utils/constants.dart';
 
 class DataDetailsScreen extends ConsumerWidget {
   final PaymentGroup group;
 
   const DataDetailsScreen({super.key, required this.group});
 
-  // --- Pie Chart Helper (remains the same) ---
   Map<String, double> _createPieDataMap() {
     Map<String, double> dataMap = {};
     if (group.expenses.isEmpty) {
@@ -56,7 +55,6 @@ class DataDetailsScreen extends ConsumerWidget {
     return colorList;
   }
 
-  // --- NEW: Algorithm to calculate payment probabilities ---
   Map<String, double> _calculatePaymentProbabilities(
       List<User> members, double hysteresis) {
     if (members.isEmpty || hysteresis <= 0) {
@@ -98,12 +96,12 @@ class DataDetailsScreen extends ConsumerWidget {
       return {for (var member in members) member.id: 0.0};
     }
 
-    // 4. Find Xmin in calculation group
+    // 3. Find Xmin in calculation group
     double xMin = calculationGroup
         .map((user) => userSums[user.id] ?? 0.0)
         .reduce(min);
 
-    // 7. Calculate weights
+    // 4. Calculate weights
     Map<String, double> weights = {};
     for (var member in members) { // Iterate all members to assign 0 weight if not in calc group
       if (calculationGroup.any((calcMember) => calcMember.id == member.id)) {
@@ -115,14 +113,12 @@ class DataDetailsScreen extends ConsumerWidget {
       }
     }
 
-    // 8. Calculate total weight
+    // 5. Calculate total weight
     double totalWeight = weights.values.fold(0.0, (sum, item) => sum + item);
 
-    // 9. Calculate probabilities
+    // 6. Calculate probabilities
     Map<String, double> probabilities = {};
     if (totalWeight == 0) {
-      // If total weight is 0 (e.g., all paid amounts are similar and Hysteresis is small, or H=0)
-      // Distribute equally among calculation group, or 0 if no one in calculation group (already handled)
       if (calculationGroup.isNotEmpty) {
         double equalProbability = 1.0 / calculationGroup.length;
         for (var member in members) {
@@ -140,12 +136,11 @@ class DataDetailsScreen extends ConsumerWidget {
     }
     return probabilities;
   }
-  // --- END NEW ALGORITHM ---
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final PaymentGroup currentGroup = group; // Using the passed group
+    final PaymentGroup currentGroup = group;
 
     final Map<String, double> pieDataMap = _createPieDataMap();
     final List<Color> pieColorList = _createPieColorList(theme);
@@ -158,22 +153,20 @@ class DataDetailsScreen extends ConsumerWidget {
       averageExpenseAmount = totalExpenseAmount / currentGroup.expenses.length;
     }
 
-    // --- NEW: Calculate Hysteresis and Probabilities ---
-    // Use defaultPortionCost (from constants.dart) if average is 0, times 2 as a factor
+
+
     double hysteresisFactor = 2.0;
     double baseHysteresisValue = averageExpenseAmount > 0 ? averageExpenseAmount : 20;
     double hysteresis = baseHysteresisValue * hysteresisFactor;
-    // Ensure hysteresis is not ridiculously small if defaultPortionCost is also small
-    if (hysteresis < 1.0 && currentGroup.members.isNotEmpty) { // Arbitrary small threshold
-        hysteresis = 20 * currentGroup.members.length * 2; // Alternative fallback
-        hysteresis = max(hysteresis, 10.0); // Absolute minimum Hysteresis
+    if (hysteresis < 1.0 && currentGroup.members.isNotEmpty) {
+        hysteresis = 20 * currentGroup.members.length * 2;
+        hysteresis = max(hysteresis, 10.0);
     }
 
     Map<String, double> paymentProbabilities = {};
     if (currentGroup.members.isNotEmpty) {
         paymentProbabilities = _calculatePaymentProbabilities(currentGroup.members, hysteresis);
     }
-    // --- END NEW ---
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -188,7 +181,7 @@ class DataDetailsScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: showChart
-                  ? PieChart(/* ... PieChart code remains the same ... */
+                  ? PieChart(
                       dataMap: pieDataMap,
                       animationDuration: const Duration(milliseconds: 800),
                       chartLegendSpacing: 32,
@@ -262,7 +255,6 @@ class DataDetailsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // --- NEW: Next Payer Probabilities Section ---
           Text('Next Payer Probabilities', style: theme.textTheme.headlineSmall?.copyWith(fontSize: 20)),
           const SizedBox(height: 12),
           Card(
@@ -299,7 +291,6 @@ class DataDetailsScreen extends ConsumerWidget {
                   ),
           ),
           const SizedBox(height: 24),
-          // --- END NEW SECTION ---
 
           Text('Member Contributions', style: theme.textTheme.headlineSmall?.copyWith(fontSize: 20)),
           const SizedBox(height: 12),

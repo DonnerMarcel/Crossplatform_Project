@@ -200,7 +200,6 @@ class FirestoreService {
       throw Exception('User is not a member of the group');
     }
 
-    // Add the payment document
     await groupRef.collection('payments').add({
       'amount': amount,
       'createdAt': FieldValue.serverTimestamp(),
@@ -208,7 +207,6 @@ class FirestoreService {
       'paidBy': paidByUserId,
     });
 
-    // Update totalPaid for this user inside the group
     double currentTotalPaid = (membersMap[paidByUserId]['totalPaid'] ?? 0.0) as double;
     membersMap[paidByUserId]['totalPaid'] = currentTotalPaid + amount;
 

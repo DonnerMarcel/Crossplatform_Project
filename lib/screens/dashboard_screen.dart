@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:pie_chart/pie_chart.dart'; // PieChart is not used directly in this snippet
 
 import '../models/models.dart';
 import '../providers.dart';
@@ -9,7 +8,7 @@ import '../services/profile_image_cache_provider.dart';
 import '../utils/formatters.dart';
 import '../widgets/dashboard/user_balance_card.dart';
 import '../widgets/history/expense_card.dart';
-import '../widgets/dashboard/spinning_wheel_dialog.dart'; // Your updated dialog
+import '../widgets/dashboard/spinning_wheel_dialog.dart';
 
 typedef AddExpenseCallback = void Function({String? preselectedPayerId});
 
@@ -46,7 +45,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ThemeData.estimateBrightnessForColor(selectedUser.profileColor ?? Colors.grey[300]!) == Brightness.dark
                       ? Colors.white
                       : Colors.black,
-              child: Text(selectedUser.name.isNotEmpty ? selectedUser.name.substring(0, 1) : "?", // Handle empty name
+              child: Text(selectedUser.name.isNotEmpty ? selectedUser.name.substring(0, 1) : "?",
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 15),
@@ -90,10 +89,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     showDialog(
       context: context,
       barrierDismissible: false, // User must interact with the result dialog
-      builder: (dialogContext) => SpinningWheelDialog( // Pass dialogContext if needed inside, else use `context`
+      builder: (dialogContext) => SpinningWheelDialog(
         users: widget.group.members,
-        // totalGroupExpenses: widget.group.totalPaid, // REMOVED
-        averageExpenseAmount: averageExpense, // NEW - Pass the calculated average
+        averageExpenseAmount: averageExpense,
         onSpinComplete: _showResultDialog,
       ),
     );
@@ -103,11 +101,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   double get _totalGroupExpensesDisplay => widget.group.expenses.fold(0.0, (sum, e) => sum + e.amount);
 
 
-  // _createPieDataMap and _createPieColorList are not directly used in the provided build method snippet
-  // but are kept here if they are used elsewhere or for future reference.
-  // If they are truly unused, they can be removed.
   Map<String, double> _createPieDataMap() {
-    // Calculate sum of actual expenses for the pie chart if that's the intent
+
     final double totalActualExpenses = widget.group.expenses.fold(0.0, (sum, e) => sum + e.amount);
     Map<String, double> dataMap = {};
 
@@ -118,8 +113,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return dataMap;
     }
 
-    // This part depends on what the pie chart should represent.
-    // If it's "who paid for what portion of expenses":
     Map<String, double> memberExpenseContribution = {};
     for (var member in widget.group.members) {
         memberExpenseContribution[member.name] = 0.0;
@@ -156,7 +149,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       theme.colorScheme.primary, theme.colorScheme.secondary, theme.colorScheme.tertiary,
       Colors.orangeAccent, Colors.lightGreen, Colors.blueAccent, Colors.purple,
     ];
-    // Ensure colors are assigned consistently with pieDataMap keys
     final pieDataMapKeys = _createPieDataMap().keys.toList();
 
     for (var userName in pieDataMapKeys) {
@@ -178,11 +170,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     // Watch the group for real-time updates from Riverpod
-    // The 'widget.group' is the initial group data.
-    // To get live updates, you'd typically watch a provider that gives you the group by ID.
-    // For example: final currentGroup = ref.watch(groupByIdProvider(widget.group.id));
-    // For simplicity, we'll use widget.group, assuming it's up-to-date or this screen
-    // is rebuilt when the group data changes significantly.
     final PaymentGroup currentGroup = widget.group;
 
     final sortedExpenses = List<Expense>.from(currentGroup.expenses)
@@ -190,9 +177,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final Expense? latestExpense = sortedExpenses.firstOrNull;
     final theme = Theme.of(context);
 
-    // final pieDataMap = _createPieDataMap(); // If pie chart is re-added
-    // final pieColorList = _createPieColorList(theme); // If pie chart is re-added
-    // final bool showChart = pieDataMap.isNotEmpty; // If pie chart is re-added
 
     final imageCache = ref.watch(profileImageCacheProvider);
 
@@ -217,7 +201,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 20),
 
-        // User totals with cached images (sync access)
         Text('User Balances (Total Paid)', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         if (widget.group.members.isNotEmpty)
@@ -243,8 +226,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 style: ElevatedButton.styleFrom(
                   foregroundColor: theme.colorScheme.onPrimary,
                   backgroundColor: theme.colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20), // Adjusted padding
-                  textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), // Adjusted style
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -252,14 +235,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.add_circle_outline), // Changed icon
+                icon: const Icon(Icons.add_circle_outline),
                 label: const Text('Add Manual'),
                 onPressed: () => widget.onAddExpenseRequested(),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
-                  side: BorderSide(color: theme.colorScheme.primary, width: 1.5), // Adjusted border
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20), // Adjusted padding
-                  textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), // Adjusted style
+                  side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -268,7 +251,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 28),
 
-        // Last Expense with cached image
         Text('Last Expense', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         if (latestExpense != null)
@@ -276,9 +258,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             final payer = widget.group.members.firstWhere(
                   (user) => user.id == latestExpense.payerId,
               orElse: () => User(
-                id: 'unknown_payer', // More specific ID
+                id: 'unknown_payer',
                 name: 'Unknown Payer',
-                profileColor: Colors.grey[400], // Slightly different color
+                profileColor: Colors.grey[400],
               ),
             );
             final imageUrl = imageCache[payer.id];

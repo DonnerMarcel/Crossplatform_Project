@@ -15,7 +15,6 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Wrap the entire app in ProviderScope
   runApp(
     const ProviderScope(
       child: FairFlipApp(),

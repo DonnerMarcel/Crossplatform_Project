@@ -1,11 +1,8 @@
-// In lib/screens/main_screen.dart (or wherever MainScreen is defined)
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/data/dummy_data.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
-// Ensure correct path for these imports
 import '../providers.dart';
 import '../models/models.dart';
 import '../utils/formatters.dart';
@@ -17,7 +14,6 @@ import 'settings_screen.dart';
 import 'add_expense_screen.dart';
 import 'data_details_screen.dart';
 
-// Change StatefulWidget to ConsumerStatefulWidget
 class MainScreen extends ConsumerStatefulWidget {
   final String groupId;
 
@@ -27,9 +23,8 @@ class MainScreen extends ConsumerStatefulWidget {
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-// Change State to ConsumerState
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _selectedIndex = 0; // Start on Dashboard (index 0)
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -42,7 +37,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
        });
   }
 
-  // --- _navigateToAddExpense method (Unchanged from your version) ---
   void _navigateToAddExpense({String? preselectedPayerId}) async {
     final PaymentGroup? group = ref.read(groupServiceProvider.select(
         (groups) => groups.firstWhereOrNull((g) => g.id == widget.groupId)
@@ -103,7 +97,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         );
     }
 
-    // Define widget options list (now with 4 items)
     final List<Widget> widgetOptions = <Widget>[
         DashboardScreen(
           group: currentGroup,
@@ -123,27 +116,23 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: IndexedStack( // Keep IndexedStack
+      body: IndexedStack(
         index: _selectedIndex,
         children: widgetOptions,
       ),
       // No FAB here anymore
 
-      // --- MODIFIED: BottomAppBar with even spacing ---
+
       bottomNavigationBar: BottomAppBar(
-        // shape: const CircularNotchedRectangle(), // Shape no longer needed
-        // notchMargin: 6.0, // Notch margin no longer needed
         color: Theme.of(context).bottomAppBarTheme.color ?? Colors.white,
         elevation: Theme.of(context).bottomAppBarTheme.elevation ?? 2,
         child: Row(
-          // Use spaceAround for even distribution of the 4 items
-          mainAxisAlignment: MainAxisAlignment.spaceAround, // <-- CHANGED
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', 0),
             _buildVerticalDivider(),
             _buildNavItem(Icons.history_outlined, Icons.history, 'History', 1),
             _buildVerticalDivider(),
-            // const Spacer(flex: 1), // Spacer REMOVED
             _buildNavItem(Icons.pie_chart_outline, Icons.pie_chart, 'Data', 2),
             _buildVerticalDivider(),
             _buildNavItem(Icons.settings_outlined, Icons.settings, 'Settings', 3),
@@ -163,7 +152,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  // Helper method to build navigation items (Unchanged from your version)
    Widget _buildNavItem(IconData icon, IconData activeIcon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
     final Color? itemColor = isSelected
@@ -171,7 +159,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         : Colors.grey[600];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0), // Keep padding if desired
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: IconButton(
         icon: Icon(isSelected ? activeIcon : icon),
         color: itemColor,
