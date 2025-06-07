@@ -16,7 +16,6 @@ Future<void> preloadProfileImages(WidgetRef ref, List<User> users) async {
         final url = await storageService.getProfileImageUrl(user.id);
         cacheNotifier.cacheImageUrl(user.id, url);
       } catch (_) {
-        // Image not found or error – silently ignore
       }
     }
   }

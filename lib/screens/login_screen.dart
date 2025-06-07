@@ -32,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // Save UserID locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', credentials.user!.uid);
       await prefs.setString('userEmail', credentials.user!.email ?? '');

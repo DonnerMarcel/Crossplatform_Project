@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collection/collection.dart'; // Needed for firstWhereOrNull if used
+import 'package:collection/collection.dart';
 
 import '../models/models.dart';
 import '../providers.dart';
-import '../utils/constants.dart'; // Assuming constants are defined here
+import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -36,7 +36,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _saveGroupName() {
-    // Keep existing save logic
     final newName = _nameController.text.trim();
     if (_formKey.currentState!.validate()) { // Validate form before saving
         if (newName.isNotEmpty && newName != widget.group.name) {
@@ -53,18 +52,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Keep existing cancel logic
     setState(() {
       _isEditingName = false;
-      _nameController.text = widget.group.name; // Reset controller
+      _nameController.text = widget.group.name;
     });
   }
 
-  // --- NEW: Method to show confirmation and delete group ---
   Future<void> _confirmAndDeleteGroup() async {
-     // Get the current group name safely before showing dialog
      final groupName = ref.read(groupServiceProvider.select(
         (groups) => groups.firstWhereOrNull((g) => g.id == widget.group.id)?.name
      )) ?? widget.group.name; // Fallback to initial name
 
-     // Show confirmation dialog
      final bool? shouldDelete = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -78,7 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                  },
               ),
               TextButton(
-                 style: TextButton.styleFrom(foregroundColor: Colors.red), // Destructive action style
+                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                  child: const Text('Delete'),
                  onPressed: () {
                      Navigator.of(dialogContext).pop(true); // Return true when confirmed
@@ -88,58 +84,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
      );
 
-     // If the user confirmed deletion (and widget is still mounted)
-     if (shouldDelete == true && mounted) {
-        // Call the delete method from the provider
-        ref.read(groupServiceProvider.notifier).deleteGroup(widget.group.id);
 
-        // Show confirmation SnackBar (optional)
+     if (shouldDelete == true && mounted) {
+        ref.read(groupServiceProvider.notifier).deleteGroup(widget.group.id);
         ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(content: Text('Group "$groupName" deleted.'))
         );
 
-        // Navigate back from the Settings screen (likely back to GroupListScreen)
-        // Pop twice: once for the dialog (implicitly done), once for the settings screen
         Navigator.of(context).pop();
      }
   }
-  // --- END NEW METHOD ---
 
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Watch the group state for updates (like name changes)
     final PaymentGroup currentGroup = ref.watch(groupServiceProvider.select(
         (groups) => groups.firstWhere(
               (g) => g.id == widget.group.id,
-              // Provide the initial group data as orElse if it might be deleted while watched
               orElse: () => widget.group,
             )));
 
-     // Sync controller if name changed externally and not currently editing
      if (!_isEditingName && _nameController.text != currentGroup.name) {
-        // Use addPostFrameCallback to avoid calling setState during build
          WidgetsBinding.instance.addPostFrameCallback((_) {
-             if(mounted) { // Check mounted before setting state after async gap
+             if(mounted) {
                _nameController.text = currentGroup.name;
              }
          });
      }
 
 
-    return Form( // Keep Form for name validation
+    return Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            // --- Group Name Setting (Editable) ---
             ListTile(
               leading: Icon(Icons.edit_note, color: theme.colorScheme.primary),
               title: const Text('Group Name'),
               subtitle: _isEditingName
-                  ? TextFormField( // Keep TextFormField logic
+                  ? TextFormField(
                       controller: _nameController,
                       autofocus: true,
                       decoration: const InputDecoration( hintText: 'Enter new group name', isDense: true,),
@@ -147,18 +132,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         if (value == null || value.trim().isEmpty) { return 'Name cannot be empty.'; }
                         return null;
                       },
-                       onFieldSubmitted: (_) => _saveGroupName(), // Allow saving with Enter key
+                       onFieldSubmitted: (_) => _saveGroupName(),
                     )
                   : Text( currentGroup.name, style: theme.textTheme.bodyLarge,),
               trailing: _isEditingName
-                  ? Row( // Keep Save/Cancel buttons
+                  ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton( icon: const Icon(Icons.cancel_outlined), color: Colors.grey, tooltip: 'Cancel', onPressed: _cancelEditName,),
                         IconButton( icon: const Icon(Icons.save_alt_outlined), color: theme.colorScheme.primary, tooltip: 'Save Name', onPressed: _saveGroupName,),
                       ],
                     )
-                  : IconButton( // Keep Edit button
+                  : IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: 'Edit Name',
                       onPressed: () { setState(() { _isEditingName = true; }); },
@@ -166,14 +151,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const Divider(),
 
-            // --- Delete Group Setting (MODIFIED onTap) ---
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('Delete Group'),
               textColor: Colors.red,
               iconColor: Colors.red,
-              // Call the new confirmation method on tap
-              onTap: _confirmAndDeleteGroup, // <-- CHANGED
+              onTap: _confirmAndDeleteGroup,
             ),
             const Divider(),
           ],

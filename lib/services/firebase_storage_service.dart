@@ -10,10 +10,8 @@ class FirebaseStorageService {
     try {
       final ref = _storage.ref().child('profile_images/$userId.jpg');
 
-      // Upload file
       await ref.putFile(imageFile);
 
-      // Return download URL
       return await ref.getDownloadURL();
     } catch (e) {
       throw Exception('Failed to upload image: $e');

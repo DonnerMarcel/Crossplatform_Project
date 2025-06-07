@@ -148,14 +148,11 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
     required double newAmount,
     required String newDescription,
   }) async {
-    // Get the old payment to compare old vs new amount
     final oldPayment = await firestoreService.getPaymentById(groupId, paymentId);
     final oldAmount = oldPayment['amount'] ?? 0.0;
 
-    // Update the payment
     await firestoreService.updatePayment(groupId, paymentId, newAmount, newDescription);
 
-    // Adjust the user's totalPaid
     final userDoc = await firestoreService.getUserByID(userId);
     final currentTotalPaid = userDoc['totalPaid'] ?? 0.0;
 
@@ -172,14 +169,11 @@ class GroupDataService extends StateNotifier<List<PaymentGroup>> {
     required String paymentId,
     required String userId,
   }) async {
-    // Get the payment to subtract its amount
     final payment = await firestoreService.getPaymentById(groupId, paymentId);
     final amount = payment['amount'] ?? 0.0;
 
-    // Delete the payment
     await firestoreService.deletePayment(groupId, paymentId);
 
-    // Adjust the user's totalPaid
     final userDoc = await firestoreService.getUserByID(userId);
     final currentTotalPaid = userDoc['totalPaid'] ?? 0.0;
 
